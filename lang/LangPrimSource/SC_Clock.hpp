@@ -37,7 +37,7 @@ class TempoClock {
 public:
     TempoClock(VMGlobals* inVMGlobals, PyrObject* inTempoClockObj, double inTempo, double inBaseBeats,
                double inBaseSeconds);
-    virtual ~TempoClock() {}
+    virtual ~TempoClock() { }
     void StopReq();
     void Stop();
     void StopAndDelete() {
@@ -116,9 +116,7 @@ template <typename Clock> int prClock_New(struct VMGlobals* g, int numArgsPushed
     try {
         Clock* clock = new Clock(g, slotRawObject(a), tempo, beats, seconds);
         SetPtr(slotRawObject(a)->slots + 1, clock);
-    } catch (int err) {
-        return err;
-    }
+    } catch (int err) { return err; }
 
     return errNone;
 }

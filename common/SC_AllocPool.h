@@ -211,8 +211,7 @@ private:
         if (binBits >= bitValue) {
             binBits = (~(bitValue - 1) & binBits);
         } else {
-            for (++word; word < 4 && !mBinBlocks[word]; ++word) {
-            }
+            for (++word; word < 4 && !mBinBlocks[word]; ++word) { }
             if (word == 4)
                 return -1;
             binBits = mBinBlocks[word];

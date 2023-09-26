@@ -255,9 +255,9 @@ void send_fail_message(endpoint_ptr const& endpoint, const char* cmd, const char
 
 
 template <typename Functor> struct fn_system_callback : public system_callback {
-    fn_system_callback(Functor const& fn): fn_(fn) {}
+    fn_system_callback(Functor const& fn): fn_(fn) { }
 
-    fn_system_callback(Functor&& fn): fn_(std::forward<Functor>(fn)) {}
+    fn_system_callback(Functor&& fn): fn_(std::forward<Functor>(fn)) { }
 
     void run(void) override { fn_(); }
 
@@ -265,9 +265,9 @@ template <typename Functor> struct fn_system_callback : public system_callback {
 };
 
 template <typename Functor> struct fn_sync_callback : public audio_sync_callback {
-    fn_sync_callback(Functor const& fn): fn_(fn) {}
+    fn_sync_callback(Functor const& fn): fn_(fn) { }
 
-    fn_sync_callback(Functor&& fn): fn_(std::forward<Functor>(fn)) {}
+    fn_sync_callback(Functor&& fn): fn_(std::forward<Functor>(fn)) { }
 
     void run(void) override { fn_(); }
 
@@ -502,8 +502,7 @@ void sc_notify_observers::send_node_reply(int32_t node_id, int reply_id, const c
             p << osc::EndMessage;
 
             instance->send_notification(p.Data(), p.Size());
-        } catch (...) {
-        }
+        } catch (...) { }
 
         cmd_dispatcher<true>::free_in_rt_thread(std::move(value_array), std::move(cmd));
 
@@ -711,9 +710,7 @@ void sc_osc_handler::tcp_connection::send(const char* data, size_t length) {
         socket_.send(boost::asio::buffer(&len, sizeof(len)));
         size_t written = socket_.send(boost::asio::buffer(data, length));
         assert(length == written);
-    } catch (std::exception const& err) {
-        std::cout << "Exception when sending message over TCP: " << err.what();
-    }
+    } catch (std::exception const& err) { std::cout << "Exception when sending message over TCP: " << err.what(); }
 }
 
 
@@ -879,9 +876,7 @@ void sc_osc_handler::handle_message(ReceivedMessage const& message, size_t msg_s
             handle_message_int_address<realtime>(message, msg_size, endpoint);
         else
             handle_message_sym_address<realtime>(message, msg_size, endpoint);
-    } catch (std::exception const& e) {
-        log_printf("exception in handle_message: %s\n", e.what());
-    }
+    } catch (std::exception const& e) { log_printf("exception in handle_message: %s\n", e.what()); }
 }
 
 namespace {
@@ -933,7 +928,7 @@ template <bool realtime> void handle_notify(ReceivedMessage const& message, endp
     });
 }
 
-template <> void handle_notify<false>(ReceivedMessage const& message, endpoint_ptr const& endpoint) {}
+template <> void handle_notify<false>(ReceivedMessage const& message, endpoint_ptr const& endpoint) { }
 
 template <bool realtime> void handle_status(endpoint_ptr const& endpoint_ref) {
     cmd_dispatcher<realtime>::fire_io_callback([=, endpoint = endpoint_ptr(endpoint_ref)]() {
@@ -962,7 +957,7 @@ template <bool realtime> void handle_status(endpoint_ptr const& endpoint_ref) {
     });
 }
 
-template <> void handle_status<false>(endpoint_ptr const& endpoint_ref) {}
+template <> void handle_status<false>(endpoint_ptr const& endpoint_ref) { }
 
 void handle_dumpOSC(ReceivedMessage const& message) {
     int val = first_arg_as_int(message);
@@ -988,7 +983,7 @@ template <bool realtime> void handle_sync(ReceivedMessage const& message, endpoi
     });
 }
 
-template <> void handle_sync<false>(ReceivedMessage const& message, endpoint_ptr const& endpoint) {}
+template <> void handle_sync<false>(ReceivedMessage const& message, endpoint_ptr const& endpoint) { }
 
 void handle_clearSched(void) { instance->clear_scheduled_bundles(); }
 
@@ -1013,7 +1008,7 @@ template <bool realtime> void handle_version(endpoint_ptr const& endpoint_ref) {
     });
 }
 
-template <> void handle_version<false>(endpoint_ptr const& endpoint_ref) {}
+template <> void handle_version<false>(endpoint_ptr const& endpoint_ref) { }
 
 void handle_unhandled_message(ReceivedMessage const& msg) {
     log_printf("unhandled message: %s\n", msg.AddressPattern());
@@ -1213,9 +1208,7 @@ void handle_s_new(ReceivedMessage const& msg) {
     try {
         while (args != end)
             set_control(synth, args, end);
-    } catch (std::exception& e) {
-        log_printf("exception in /s_new: %s\n", e.what());
-    }
+    } catch (std::exception& e) { log_printf("exception in /s_new: %s\n", e.what()); }
 }
 
 
@@ -1336,9 +1329,7 @@ template <bool realtime> void g_query_tree(int node_id, bool flag, endpoint_ptr 
             movable_array<char> message(p.Size(), data.c_array());
             cmd_dispatcher<realtime>::fire_message(endpoint, std::move(message));
             return;
-        } catch (...) {
-            max_msg_size *= 2; /* if we run out of memory, retry with doubled memory resources */
-        }
+        } catch (...) { max_msg_size *= 2; /* if we run out of memory, retry with doubled memory resources */ }
     }
 }
 
@@ -1350,9 +1341,7 @@ template <bool realtime> void handle_g_queryTree(ReceivedMessage const& msg, end
             osc::int32 id, flag;
             args >> id >> flag;
             g_query_tree<realtime>(id, flag, endpoint);
-        } catch (std::exception& e) {
-            log_printf("exception in handle_g_queryTree: %s\n", e.what());
-        }
+        } catch (std::exception& e) { log_printf("exception in handle_g_queryTree: %s\n", e.what()); }
     }
 }
 
@@ -1441,9 +1430,7 @@ void handle_g_dumpTree(ReceivedMessage const& msg) {
             osc::int32 id, flag;
             args >> id >> flag;
             g_dump_tree(id, flag);
-        } catch (std::exception& e) {
-            log_printf("exception in /g_dumpTree: %s\n", e.what());
-        }
+        } catch (std::exception& e) { log_printf("exception in /g_dumpTree: %s\n", e.what()); }
     }
 }
 
@@ -1460,9 +1447,7 @@ void handle_n_free(ReceivedMessage const& msg) {
                 continue;
 
             instance->free_node(node);
-        } catch (std::exception& e) {
-            log_printf("exception in /n_free: %s\n", e.what());
-        }
+        } catch (std::exception& e) { log_printf("exception in /n_free: %s\n", e.what()); }
     }
 }
 
@@ -1483,9 +1468,7 @@ void handle_n_free(ReceivedMessage const& msg) {
         try {                                                                                                          \
             while (it != msg.ArgumentsEnd())                                                                           \
                 function(node, it);                                                                                    \
-        } catch (std::exception & e) {                                                                                 \
-            log_printf("Exception during /n_" #cmd "handler: %s\n", e.what());                                         \
-        }                                                                                                              \
+        } catch (std::exception & e) { log_printf("Exception during /n_" #cmd "handler: %s\n", e.what()); }            \
     }
 
 void set_control(server_node* node, osc::ReceivedMessageArgumentIterator& it) {
@@ -1908,7 +1891,7 @@ struct completion_message {
     }
 
     /** default constructor creates uninitialized object */
-    completion_message(void): size_(0) {}
+    completion_message(void): size_(0) { }
 
     completion_message(completion_message const& rhs) = delete;
     completion_message operator=(completion_message const& rhs) = delete;
@@ -1957,8 +1940,7 @@ completion_message extract_completion_message(osc::ReceivedMessageArgumentStream
     if (!args.Eos()) {
         try {
             args >> blob;
-        } catch (osc::WrongArgumentTypeException& e) {
-        }
+        } catch (osc::WrongArgumentTypeException& e) { }
     }
 
     return completion_message(blob.size, blob.data);

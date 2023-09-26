@@ -43,7 +43,7 @@ static inline double sc_PAOSCTimeSeconds() { return (uint64)sc_PAOSCTime() * kOS
 
 int64 oscTimeNow() { return sc_PAOSCTime(); }
 
-void initializeScheduler() {}
+void initializeScheduler() { }
 
 #else // SC_PA_USE_DLL
 
@@ -243,9 +243,7 @@ int SC_PortAudioDriver::PortAudioCallback(const void* input, void* output, unsig
         }
     } catch (std::exception& exc) {
         scprintf("SC_PortAudioDriver: exception in real time: %s\n", exc.what());
-    } catch (...) {
-        scprintf("SC_PortAudioDriver: unknown exception in real time\n");
-    }
+    } catch (...) { scprintf("SC_PortAudioDriver: unknown exception in real time\n"); }
 
     double cpuUsage = Pa_GetStreamCpuLoad(mStream) * 100.0;
     mAvgCPU = mAvgCPU + 0.1 * (cpuUsage - mAvgCPU);

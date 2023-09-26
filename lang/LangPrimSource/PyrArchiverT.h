@@ -48,7 +48,7 @@ public:
         mObjectArray(mInitialObjectArray),
         mNumObjects(0),
         mObjectArrayCapacity(kObjectArrayInitialCapacity),
-        mReadArchiveVersion(0) {}
+        mReadArchiveVersion(0) { }
 
     ~PyrArchiver() {
         if (mObjectArray != mInitialObjectArray) {
@@ -152,9 +152,7 @@ public:
         } catch (std::exception& ex) {
             error(ex.what());
             err = errFailed;
-        } catch (...) {
-            err = errFailed;
-        }
+        } catch (...) { err = errFailed; }
         // postfl("<-readArchive\n");
         return err;
     }
