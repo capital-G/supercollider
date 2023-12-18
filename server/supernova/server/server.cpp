@@ -56,10 +56,13 @@ nova_server::nova_server(server_arguments const& args):
     instance = this;
 
     use_system_clock = (args.use_system_clock == 1);
+    non_rt = args.non_rt;
     smooth_samplerate = args.samplerate;
 
-    if (!args.non_rt)
+    if (!args.non_rt) {
+        audio_backend::initialize();
         io_interpreter.start_thread();
+    }
 
     sc_factory.reset(new sc_ugen_factory);
     sc_factory->initialize(args, server_shared_memory_creator::shm->get_control_busses());
@@ -289,12 +292,10 @@ void thread_init_functor::operator()(int thread_index) {
 }
 
 void io_thread_init_functor::operator()() const {
+    /* NB: on macOS we just keep the default thread priority */
 #ifdef NOVA_TT_PRIORITY_RT
     int priority = thread_priority_interval_rt().first;
     thread_set_priority_rt(priority);
-#else
-    int priority = thread_priority_interval().second;
-    thread_set_priority(priority);
 #endif
 
     name_thread("Network Send");

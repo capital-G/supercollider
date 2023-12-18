@@ -12,13 +12,15 @@ on:
       - 'HelpSource/**'
       - 'sounds/**'
       - '*.md'
+  schedule:
+    - cron:  '0 0 * * 0' # run weekly to refresh cache
 jobs:
   lint:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     outputs:
       sc-version: ${{ steps.set-version.outputs.version }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
       - name: lint class library
@@ -40,7 +42,7 @@ jobs:
           else
             SC_VERSION=$GITHUB_SHA
           fi
-          echo "::set-output name=version::$SC_VERSION"
+          echo "version=$SC_VERSION" >> $GITHUB_OUTPUT
 
   Linux:
     needs: lint
@@ -49,74 +51,74 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - job-name: 'bionic gcc7'
-            os-version: '18.04'
+          - job-name: 'focal gcc7'
+            os-version: '20.04'
             c-compiler: 'gcc-7'
             cxx-compiler: 'g++-7'
             use-syslibs: false
             shared-libscsynth: false
 
-          - job-name: 'bionic gcc8'
-            os-version: '18.04'
-            c-compiler: 'gcc-8'
-            cxx-compiler: 'g++-8'
-            use-syslibs: false
-            shared-libscsynth: false
-
-          - job-name: 'bionic gcc9'
-            os-version: '18.04'
-            c-compiler: 'gcc-9'
-            cxx-compiler: 'g++-9'
-            use-syslibs: false
-            shared-libscsynth: false
-
-          - job-name: 'bionic gcc9 shared libscsynth'
-            os-version: '18.04'
+          - job-name: 'focal gcc9 shared libscsynth'
+            os-version: '20.04'
             c-compiler: 'gcc-9'
             cxx-compiler: 'g++-9'
             use-syslibs: false
             shared-libscsynth: true
 
-          - job-name: 'bionic gcc10'
-            os-version: '18.04'
+          - job-name: 'jammy gcc10 use system libraries'
+            os-version: '22.04'
             c-compiler: 'gcc-10'
             cxx-compiler: 'g++-10'
-            use-syslibs: false
+            use-syslibs: true
             shared-libscsynth: false
-            artifact-suffix: 'linux-bionic-gcc10' # set if needed - will trigger artifact upload
 
-          # - job-name: 'focal gcc10 use system libraries' # disabled - boost version incompatible
-          #   os-version: '20.04'
-          #   c-compiler: 'gcc-10'
-          #   cxx-compiler: 'g++-10'
-          #   use-syslibs: true
-          #   shared-libscsynth: false
-
-          - job-name: 'bionic clang6.0'
-            os-version: '18.04'
-            c-compiler: 'clang-6.0'
-            cxx-compiler: 'clang++-6.0'
+          - job-name: 'jammy gcc11'
+            os-version: '22.04'
+            c-compiler: 'gcc-11'
+            cxx-compiler: 'g++-11'
             use-syslibs: false
             shared-libscsynth: false
 
-          - job-name: 'bionic clang8'
-            os-version: '18.04'
-            c-compiler: 'clang-8'
-            cxx-compiler: 'clang++-8'
+          - job-name: 'jammy gcc12'
+            os-version: '22.04'
+            c-compiler: 'gcc-12'
+            cxx-compiler: 'g++-12'
             use-syslibs: false
             shared-libscsynth: false
+            artifact-suffix: 'linux-jammy-gcc12' # set if needed - will trigger artifact upload
 
-          - job-name: 'bionic clang9'
-            os-version: '18.04'
-            c-compiler: 'clang-9'
-            cxx-compiler: 'clang++-9'
-            use-syslibs: false
-            shared-libscsynth: false
-
-          - job-name: 'focal clang10'
+          - job-name: 'focal clang7'
             os-version: '20.04'
-            c-compiler: 'clang-10'
-            cxx-compiler: 'clang++-10'
+            c-compiler: 'clang-7'
+            cxx-compiler: 'clang++-7'
+            use-syslibs: false
+            shared-libscsynth: false
+
+          - job-name: 'focal clang11'
+            os-version: '20.04'
+            c-compiler: 'clang-11'
+            cxx-compiler: 'clang++-11'
+            use-syslibs: false
+            shared-libscsynth: false
+
+          - job-name: 'focal clang12'
+            os-version: '20.04'
+            c-compiler: 'clang-12'
+            cxx-compiler: 'clang++-12'
+            use-syslibs: false
+            shared-libscsynth: false
+
+          - job-name: 'jammy clang13'
+            os-version: '22.04'
+            c-compiler: 'clang-13'
+            cxx-compiler: 'clang++-13'
+            use-syslibs: false
+            shared-libscsynth: false
+
+          - job-name: 'jammy clang14'
+            os-version: '22.04'
+            c-compiler: 'clang-14'
+            cxx-compiler: 'clang++-14'
             use-syslibs: false
             shared-libscsynth: false
 
@@ -130,33 +132,36 @@ jobs:
       CXX: ${{ matrix.cxx-compiler }}
       ARTIFACT_FILE: 'SuperCollider-${{ needs.lint.outputs.sc-version }}-${{ matrix.artifact-suffix }}'
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
       - name: prepare daily timestamp for cache
         id: current-date
-        run: echo "::set-output name=stamp::$(date '+%Y-%m-%d')"
+        run: echo "stamp=$(date '+%Y-%m-%d')" >> $GITHUB_OUTPUT
       - name: cache ccache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
-          path: ~/.ccache
+          path: |
+            ~/.ccache
+            ~/.cache/ccache
           key: ${{ runner.os }}-${{ matrix.os-version }}-${{ matrix.c-compiler }}-${{ matrix.use-syslibs }}-${{ matrix.shared-libscsynth }}-${{ steps.current-date.outputs.stamp }}
           restore-keys: ${{ runner.os }}-${{ matrix.os-version }}-${{ matrix.c-compiler }}-${{ matrix.use-syslibs }}-${{ matrix.shared-libscsynth }}-
       - name: install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install --yes build-essential cmake pkg-config libjack-jackd2-dev libsndfile1-dev libasound2-dev libavahi-client-dev libreadline6-dev libfftw3-dev libicu-dev libxt-dev libudev-dev emacs ccache
-          # clang and gcc compilers < 9.x are no longer on ubuntu images; install them manually
-          if [[ "$CC" =~ clang-[1-8] ]]; then
+          # install appropriate clang/gcc compilers
+          if [[ "$CC" =~ clang-[1-9] ]]; then
             sudo apt-get install -y $CC # package names are clang-X
-          elif [[ "$CC" =~ gcc-[1-8] ]]; then
+            sudo apt-get install -y libc++-${CC##clang-}-dev libc++abi-${CC##clang-}-dev # install additional libraries; package names are libc++-X-dev and libc++abi-X-dev
+          elif [[ "$CC" =~ gcc-[1-9] ]]; then
             sudo apt-get install -y $CXX # package names are g++-X
           fi
       - name: install system libraries
         if: env.USE_SYSLIBS == 'true'
         run: sudo apt-get install --yes libboost-thread-dev libboost-system-dev libboost-filesystem-dev libboost-regex-dev libboost-test-dev libboost-program-options-dev libyaml-cpp-dev
       - name: install qt from apt
-        run: sudo apt-get install qt5-default qt5-qmake qttools5-dev qttools5-dev-tools qtdeclarative5-dev libqt5svg5-dev libqt5websockets5-dev qtwebengine5-dev
+        run: sudo apt-get install qtbase5-dev qt5-qmake qttools5-dev qttools5-dev-tools qtdeclarative5-dev libqt5svg5-dev libqt5websockets5-dev qtwebengine5-dev
       - name: configure
         run: |
           mkdir $BUILD_PATH && cd $BUILD_PATH
@@ -176,12 +181,11 @@ jobs:
         if: matrix.artifact-suffix
         run: cd $INSTALL_PATH && zip --symlinks -r $ARTIFACT_FILE.zip .
       - name: upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         if: matrix.artifact-suffix
         with:
           name: ${{ env.ARTIFACT_FILE }}
           path: ${{ env.INSTALL_PATH }}/${{ env.ARTIFACT_FILE }}.zip
-          retention-days: 7 # quickly remove test artifacts
 
   macOS:
     needs: lint
@@ -191,38 +195,51 @@ jobs:
       matrix:
         include:
 
-          - job-name: ''
-            os-version: '10.15'
-            xcode-version: '11.7'
-            deployment-target: '10.13' # Qt 5.15 runs on macOS 10.13 and newer
+          - job-name: 'universal'
+            os-version: '12'
+            xcode-version: '13.4.1'
+            deployment-target: '10.14'
+            cmake-architectures: 'x86_64;arm64'
             use-syslibs: false
             shared-libscsynth: false
-            build-libsndfile: true
-            artifact-suffix: 'macOS' # set if needed - will trigger artifact upload
+            system-portaudio: true
+            build-libsndfile: false
+            build-readline: false
+            build-fftw: false
+            artifact-suffix: 'macOS-universal'
+            verify-app: true
 
-          - job-name: 'legacy'
-            os-version: '10.15'
-            xcode-version: '10.3'
+          - job-name: 'x64 legacy'
+            os-version: '12'
+            xcode-version: '13.4.1'
             qt-version: '5.9.9' # will use qt from aqtinstall
-            deployment-target: '10.10'
+            deployment-target: '10.11'
+            cmake-architectures: x86_64
             use-syslibs: false
             shared-libscsynth: false
             build-libsndfile: true
-            artifact-suffix: 'macOS-legacy' # set if needed - will trigger artifact upload
+            system-portaudio: false
+            build-fftw: true
+            vcpkg-triplet: x64-osx-release-supercollider # required for build-libsndfile
+            artifact-suffix: 'macOS-x64-legacy' # set if needed - will trigger artifact upload
 
-          - job-name: 'use system libraries'
-            os-version: '10.15'
-            xcode-version: '11.7'
-            deployment-target: '10.13'
+          - job-name: 'x64 use system libraries'
+            os-version: '12'
+            xcode-version: '13.4.1'
+            deployment-target: '10.14'
+            cmake-architectures: x86_64
             use-syslibs: true
             shared-libscsynth: false
+            verify-app: true
 
-          - job-name: 'shared libscsynth'
-            os-version: '10.15'
-            xcode-version: '11.7'
-            deployment-target: '10.13'
+          - job-name: 'x64 shared libscsynth'
+            os-version: '12'
+            xcode-version: '13.4.1'
+            deployment-target: '10.14'
+            cmake-architectures: x86_64
             use-syslibs: false
             shared-libscsynth: true
+            verify-app: true
 
     name: macOS ${{ matrix.job-name }}
     env:
@@ -231,105 +248,106 @@ jobs:
       HOMEBREW_NO_ANALYTICS: 1
       HOMEBREW_NO_AUTO_UPDATE: 1
       HOMEBREW_NO_INSTALL_CLEANUP: 1
+      HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
       USE_SYSLIBS: ${{ matrix.use-syslibs }}
       SHARED_LIBSCSYNTH: ${{ matrix.shared-libscsynth }}
       ARTIFACT_FILE: 'SuperCollider-${{ needs.lint.outputs.sc-version }}-${{ matrix.artifact-suffix }}.dmg'
       DEVELOPER_DIR: '/Applications/Xcode_${{ matrix.xcode-version }}.app/Contents/Developer'
       MACOSX_DEPLOYMENT_TARGET: '${{ matrix.deployment-target }}'
+      CMAKE_OSX_ARCHITECTURES: '${{ matrix.cmake-architectures }}'
+      BREW_UNIVERSAL_WORKDIR: ${{ github.workspace }}/brew-universal
+      SKIP_SIGNING: 1 # for brew-install-universal
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
       - name: prepare timestamp for cache
         id: current-date
         run: |
-          echo "::set-output name=stamp::$(date '+%Y-%m-%d')"
-          echo "::set-output name=week::$(date '+%V')"
+          echo "stamp=$(date '+%Y-%m-%d')" >> $GITHUB_OUTPUT
+          echo "week=$(date '+%U')" >> $GITHUB_OUTPUT
       - name: cache ccache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/Library/Caches/ccache
-          key: ${{ runner.os }}-${{ matrix.os-version }}-${{ matrix.xcode-version }}-${{ matrix.use-syslibs }}-${{ matrix.shared-libscsynth }}-${{ matrix.qt-version }}-${{ steps.current-date.outputs.stamp }}
-          restore-keys: ${{ runner.os }}-${{ matrix.os-version }}-${{ matrix.xcode-version }}-${{ matrix.use-syslibs }}-${{ matrix.shared-libscsynth }}-${{ matrix.qt-version }}-
+          key: ${{ runner.os }}-${{ matrix.os-version }}-${{ matrix.xcode-version }}-${{ matrix.use-syslibs }}-${{ matrix.shared-libscsynth }}-${{ matrix.qt-version }}-${{ matrix.cmake-architectures }}-${{ steps.current-date.outputs.stamp }}
+          restore-keys: ${{ runner.os }}-${{ matrix.os-version }}-${{ matrix.xcode-version }}-${{ matrix.use-syslibs }}-${{ matrix.shared-libscsynth }}-${{ matrix.qt-version }}-${{ matrix.cmake-architectures }}-
+      - name: cleanup homebrew downloads # always remove existing downloads first, as we bring back relevant downloads from cache
+        run: rm -rf $(brew --cache)
       - name: cache homebrew downloads
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         id: cache-homebrew
         with:
           path: ~/Library/Caches/Homebrew/downloads
-          key: ${{ runner.os }}-${{ matrix.os-version }}-${{ matrix.xcode-version }}-${{ matrix.use-syslibs }}-${{ matrix.shared-libscsynth }}-${{ matrix.qt-version }}-homebrew-${{ steps.current-date.outputs.week }}
-      - name: cache qt
-        id: cache-qt
-        uses: actions/cache@v1
-        if: matrix.qt-version
+          key: ${{ runner.os }}-${{ matrix.os-version }}-${{ matrix.xcode-version }}-${{ matrix.use-syslibs }}-${{ matrix.shared-libscsynth }}-${{ matrix.qt-version }}-${{ matrix.cmake-architectures }}-homebrew-${{ steps.current-date.outputs.week }}
+          restore-keys: ${{ runner.os }}-${{ matrix.os-version }}-${{ matrix.xcode-version }}-${{ matrix.use-syslibs }}-${{ matrix.shared-libscsynth }}-${{ matrix.qt-version }}-${{ matrix.cmake-architectures }}-homebrew-
+      - name: cache homebrew universal packages
+        uses: actions/cache@v3
+        if: matrix.cmake-architectures != 'x86_64' && (matrix.build-libsndfile != true || matrix.build-readline != true || matrix.build-fftw != true)
         with:
-          path: ../Qt
-          key: ${{ runner.os }}-v1-${{ matrix.os-version }}-${{ matrix.xcode-version }}-${{ matrix.use-syslibs }}-${{ matrix.shared-libscsynth }}-qt${{ matrix.qt-version }}
-      - name: cleanup homebrew downloads # make sure we store only relevant downloads in cache
-        if: '!steps.cache-homebrew.outputs.cache-hit'
-        run: rm -rf $(brew --cache)
+          path: ${{ env.BREW_UNIVERSAL_WORKDIR }}
+          key: ${{ runner.os }}-v1-${{ matrix.os-version }}-${{ matrix.xcode-version }}-${{ matrix.deployment-target }}-brew_universal-${{ steps.current-date.outputs.week }}
+          restore-keys: ${{ runner.os }}-v1-${{ matrix.os-version }}-${{ matrix.xcode-version }}-${{ matrix.deployment-target }}-brew_universal-
+      - name: cache vcpkg
+        if: matrix.vcpkg-triplet
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/vcpkg/archives
+          key: ${{ runner.os }}-${{ matrix.os-version }}-${{ matrix.xcode-version }}-${{ matrix.deployment-target }}-${{ matrix.vcpkg-triplet }}-${{ steps.current-date.outputs.stamp }}
+          restore-keys: ${{ runner.os }}-${{ matrix.os-version }}-${{ matrix.xcode-version }}-${{ matrix.deployment-target }}-${{ matrix.vcpkg-triplet }}-
       - name: install dependencies
         run: |
-          brew install portaudio ccache fftw
+          brew install ccache
           # add ccamke to PATH - see https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-commands-for-github-actions
           echo "/usr/local/opt/ccache/libexec" >> $GITHUB_PATH
-      - name: build libsndfile # to make it compatible with older OSes (lower deployment target)
-        if: matrix.build-libsndfile == true
+          if [[ "${{ matrix.system-portaudio }}" != "false" ]]; then brew install portaudio; fi
+          if [[ "${{ matrix.build-fftw }}" != "true" ]]; then brew install fftw; fi
+
+          # install universal versions of homebrew libraries
+          if [[ "${{ matrix.cmake-architectures }}" != "x86_64" ]]; then
+              echo "Downloading script for creating universal binaries from homebrew packages"
+              curl -O -J -L https://gist.githubusercontent.com/dyfer/6c83905d4593750105897e51e87ec345/raw/1f89f2fe767a2e637387e74f0c8dcc86a0963f60/brew-install-universal.sh
+              chmod +x brew-install-universal.sh
+              if [[ "${{ matrix.build-libsndfile }}" != "true" ]]; then ./brew-install-universal.sh libsndfile; fi
+              if [[ "${{ matrix.build-readline }}" != "true" ]]; then ./brew-install-universal.sh readline; fi
+              if [[ "${{ matrix.build-fftw }}" != "true" ]]; then ./brew-install-universal.sh fftw; fi
+              if [[ "${{ matrix.system-portaudio }}" != "false" ]]; then ./brew-install-universal.sh portaudio; fi
+          fi
+      - name: install libsndfile # to make it compatible with older OSes (lower deployment target)
+        if: matrix.build-libsndfile == true && matrix.vcpkg-triplet
         run: |
           brew uninstall --ignore-dependencies libsndfile libvorbis libogg flac opus
-          brew install automake
-          cd $GITHUB_WORKSPACE/..
-          curl -L https://gitlab.xiph.org/xiph/ogg/-/archive/v1.3.5/ogg-v1.3.5.tar.bz2 --output ogg.tar.bz2
-          tar xfz ogg.tar.bz2
-          cd ogg*/
-          echo "*** building libogg ***"
-          mkdir build && cd build
-          cmake -G"Unix Makefiles" -DBUILD_FRAMEWORK=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="-Wall -Wextra" -DCMAKE_INSTALL_PREFIX=/usr/local ..
-          cmake --build . --target install
-          cd $GITHUB_WORKSPACE/..
-          curl -L https://github.com/xiph/flac/archive/refs/tags/1.3.3.tar.gz --output flac.tar.xz
-          tar xfz flac.tar.xz
-          cd flac*/
-          echo "*** building flac ***"
-          cd build # build directory already exists
-          cmake -G"Unix Makefiles" -DBUILD_SHARED_LIBS=OFF -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="-Wall -Wextra" -DCMAKE_INSTALL_PREFIX=/usr/local ..
-          cmake --build . --target install
-          cd $GITHUB_WORKSPACE/..
-          curl -L https://github.com/xiph/opus/archive/refs/tags/v1.3.1.tar.gz --output opus.tar.gz
-          tar xfz opus.tar.gz
-          cd opus*/
-          echo "*** building opus ***"
-          mkdir build && cd build
-          cmake -G"Unix Makefiles" -DBUILD_SHARED_LIBS=OFF -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="-Wall -Wextra" -DCMAKE_INSTALL_PREFIX=/usr/local ..
-          cmake --build . --target install
-          cd $GITHUB_WORKSPACE/..
-          curl -L https://github.com/xiph/vorbis/releases/download/v1.3.7/libvorbis-1.3.7.tar.gz --output libvorbis.tar.gz
-          tar xfz libvorbis.tar.gz
-          cd libvorbis*/
-          echo "building *** libvorbis ***"
-          mkdir build && cd build
-          cmake -G"Unix Makefiles" -DBUILD_FRAMEWORK=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="-Wall -Wextra" -DCMAKE_INSTALL_PREFIX=/usr/local ..
-          cmake --build . --target install
-          cd $GITHUB_WORKSPACE/..
-          curl -L https://github.com/libsndfile/libsndfile/releases/download/1.0.31/libsndfile-1.0.31.tar.bz2 --output libsndfile.tar.bz2
-          tar xfz libsndfile.tar.bz2
-          cd libsndfile*/
-          echo "building libsndfile"
-          mkdir build && cd build
-          cmake -G"Unix Makefiles" -DBUILD_SHARED_LIBS=ON -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_C_FLAGS="-Wall -Wextra" -DCMAKE_INSTALL_PREFIX=/usr/local ..
-          cmake --build . --target install
+          vcpkg install libsndfile --triplet="${{ matrix.vcpkg-triplet }}" --overlay-triplets="$GITHUB_WORKSPACE/vcpkg/triplets"
+      - name: install readline # to allow cross-compiling
+        if: matrix.build-readline == true && matrix.vcpkg-triplet
+        run: |
+          brew uninstall --ignore-dependencies readline
+          vcpkg install readline --triplet="${{ matrix.vcpkg-triplet }}" --overlay-triplets="$GITHUB_WORKSPACE/vcpkg/triplets" 
+          # vcpkg readline currently fails on arm64 (ncurses dependency)
+          # see https://github.com/microsoft/vcpkg/issues/22654
+      - name: install fftw # to allow cross-compiling
+        if: matrix.build-fftw == true && matrix.vcpkg-triplet
+        run: |
+          vcpkg install fftw3 --triplet="${{ matrix.vcpkg-triplet }}" --overlay-triplets="$GITHUB_WORKSPACE/vcpkg/triplets"          
       - name: install system libraries
         if: env.USE_SYSLIBS == 'true'
         run: brew install yaml-cpp boost
       - name: install qt from homebrew
-        if: '!matrix.qt-version'
+        if: matrix.cmake-architectures == 'x86_64' && !matrix.qt-version
         run: brew install qt5
+      - name: install qt universal binary from homebrew
+        if: matrix.cmake-architectures != 'x86_64' && !matrix.qt-version
+        run: ./brew-install-universal.sh qt5
       - name: install qt using aqtinstall
-        uses: jurplel/install-qt-action@v2
+        uses: jurplel/install-qt-action@v3
         if: matrix.qt-version
+        env:
+          DEVELOPER_DIR: '' # remove developer dir which causes installation to fail
         with:
           modules: 'qtwebengine'
           version: ${{ matrix.qt-version }}
-          cached: ${{ steps.cache-qt.outputs.cache-hit }}
+          cache: true
+          cache-key-prefix: ${{ runner.os }}-v1-${{ matrix.os-version }}-${{ matrix.xcode-version }}-${{ matrix.use-syslibs }}-${{ matrix.shared-libscsynth }}-qt${{ matrix.qt-version }}
 
       - name: configure
         run: |
@@ -341,11 +359,20 @@ jobs:
 
           if $SHARED_LIBSCSYNTH; then EXTRA_CMAKE_FLAGS="-DLIBSCSYNTH=ON $EXTRA_CMAKE_FLAGS"; fi
 
-          if [[ -z "${{ matrix.qt-version }}" ]]; then EXTRA_CMAKE_FLAGS="-DCMAKE_PREFIX_PATH=`brew --prefix qt5` -DSC_VERIFY_APP=ON $EXTRA_CMAKE_FLAGS"; fi
+          if [[ -z "${{ matrix.qt-version }}" ]]; then EXTRA_CMAKE_FLAGS="-DCMAKE_PREFIX_PATH=`brew --prefix qt5` $EXTRA_CMAKE_FLAGS"; fi
+
+          if [[ "${{ matrix.verify-app }}" == "true" ]]; then EXTRA_CMAKE_FLAGS="-DSC_VERIFY_APP=ON $EXTRA_CMAKE_FLAGS"; fi
+
+          if [[ "${{ matrix.system-portaudio }}" == "false" ]]; then EXTRA_CMAKE_FLAGS="-DSYSTEM_PORTAUDIO=OFF $EXTRA_CMAKE_FLAGS"; fi
+
+          if [[ -n "${{ matrix.vcpkg-triplet }}" ]]; then
+            export VCPKG_ROOT=$VCPKG_INSTALLATION_ROOT
+            EXTRA_CMAKE_FLAGS="-DVCPKG_TARGET_TRIPLET=${{ matrix.vcpkg-triplet }} -DCMAKE_BUILD_TYPE=Release $EXTRA_CMAKE_FLAGS"
+          fi
 
           echo "EXTRA_CMAKE_FLAGS:" $EXTRA_CMAKE_FLAGS
 
-          cmake -G"Xcode" -DRULE_LAUNCH_COMPILE=ccache -DSUPERNOVA=ON $EXTRA_CMAKE_FLAGS .. --debug-output
+          cmake -G"Xcode" -DRULE_LAUNCH_COMPILE=ccache -DSUPERNOVA=ON $EXTRA_CMAKE_FLAGS ..
       - name: build
         run: cmake --build $BUILD_PATH --config Release --target install
       - name: create archive
@@ -361,12 +388,11 @@ jobs:
           # when that happens, we run it again
           hdiutil create -srcfolder SuperCollider -format UDZO -fs HFS+ $ARTIFACT_FILE || hdiutil create -srcfolder SuperCollider -format UDZO -fs HFS+ $ARTIFACT_FILE
       - name: upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         if: matrix.artifact-suffix
         with:
           name: ${{ env.ARTIFACT_FILE }}
           path: ${{ env.INSTALL_PATH }}/${{ env.ARTIFACT_FILE }}
-          retention-days: 7 # quickly remove test artifacts
 
   Windows:
     needs: lint
@@ -386,9 +412,9 @@ jobs:
             cmake-generator: 'Visual Studio 16 2019'
             msvc-year: '2019'
             vcvars-script: 'vcvars32.bat'
-            chocolatey-options: '--forcex86' # '--forcex86' for 32-bit build
+            vcpkg-triplet: x86-windows-release
             use-qtwebengine: 'ON' # might need to be turned off for MinGW
-            ableton-link: 'ON' # might need to be turned off for MinGW
+            qt-modules: 'qtwebengine'
             artifact-suffix: 'win32' # set if needed - will trigger artifact upload
             create-installer: ${{ startsWith(github.ref, 'refs/tags/') }}
             installer-suffix: 'win32-installer'
@@ -403,9 +429,9 @@ jobs:
             cmake-generator: 'Visual Studio 16 2019'
             msvc-year: '2019'
             vcvars-script: 'vcvars64.bat'
-            chocolatey-options: '' # '--forcex86' for 32-bit build
+            vcpkg-triplet: x64-windows-release
             use-qtwebengine: 'ON' # might need to be turned off for MinGW
-            ableton-link: 'ON' # might need to be turned off for MinGW
+            qt-modules: 'qtwebengine'
             artifact-suffix: 'win64' # set if needed - will trigger artifact upload
             create-installer: ${{ startsWith(github.ref, 'refs/tags/') }}
             installer-suffix: 'win64-installer'
@@ -419,7 +445,7 @@ jobs:
             cmake-generator: 'MinGW Makefiles'
             chocolatey-options: '' # '--forcex86' for 32-bit build
             use-qtwebengine: 'OFF' # might need to be turned off for MinGW
-            ableton-link: 'OFF' # might need to be turned off for MinGW
+            qt-modules: ''
             artifact-suffix: 'win64-mingw' # set if needed - will trigger artifact upload
 
     name: Windows ${{ matrix.job-name }}
@@ -432,29 +458,47 @@ jobs:
       ARTIFACT_FILE: 'SuperCollider-${{ needs.lint.outputs.sc-version }}-${{ matrix.artifact-suffix }}'
       INSTALLER_FILE: 'SuperCollider-${{ needs.lint.outputs.sc-version }}-${{ matrix.installer-suffix }}'
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
       - name: prepare timestamp for cache
         id: current-date
-        run: |
-          echo "::set-output name=stamp::$(date '+%Y-%m-%d')"
-          echo "::set-output name=week::$(date '+%V')"
-      - name: cache qt
-        id: cache-qt
-        uses: actions/cache@v1
+        shell: bash
+        run: echo "stamp=$(date '+%Y-%m-%d')" >> $GITHUB_OUTPUT
+      - name: cache vcpkg
+        if: matrix.vcpkg-triplet
+        uses: actions/cache@v3
         with:
-          path: ../Qt
-          key: ${{ runner.os }}-v1-${{ matrix.os-version }}-${{ matrix.qt-version }}-qt${{ matrix.qt-arch }}
+          path: ~/AppData/Local/vcpkg/archives
+          key: ${{ runner.os }}-${{ matrix.os-version }}-${{ matrix.cmake-arch }}-${{ matrix.vcpkg-triplet }}-${{ steps.current-date.outputs.stamp }}
+          restore-keys: ${{ runner.os }}-${{ matrix.os-version }}-${{ matrix.cmake-arch }}-${{ matrix.vcpkg-triplet }}-
+      - name: cache ccache
+        uses: actions/cache@v3
+        with:
+          path: ~/AppData/Local/ccache # updated in ccache 4.7, see https://github.com/ccache/ccache/issues/1023
+          key: ${{ runner.os }}-${{ matrix.os-version }}-${{ matrix.cmake-arch }}-${{ matrix.qt-arch }}-${{ matrix.qt-version }}-${{ steps.current-date.outputs.stamp }}
+          restore-keys: ${{ runner.os }}-${{ matrix.os-version }}-${{ matrix.cmake-arch }}-${{ matrix.qt-arch }}-${{ matrix.qt-version }}-
       - name: install qt using aqtinstall
-        uses: jurplel/install-qt-action@v2
+        uses: jurplel/install-qt-action@v3
         with:
-          modules: 'qtwebengine'
+          modules: ${{ matrix.qt-modules }}
           version: ${{ matrix.qt-version }}
           arch: ${{ matrix.qt-arch }}
-          cached: ${{ steps.cache-qt.outputs.cache-hit }}
+          cache: true
+          cache-key-prefix: ${{ runner.os }}-v1-${{ matrix.os-version }}-${{ matrix.qt-version }}-qt${{ matrix.qt-arch }}
+      - name: install ccache
+        shell: bash
+        run: |
+          choco install ccache --no-progress
+          echo "`echo c:/ProgramData/chocolatey/lib/ccache/tools/ccache*`" >> $GITHUB_PATH # put the direct path before the path of the choco's "shim" (link subsitute)
       - name: install libsndfile
-        run: choco install libsndfile ${{ matrix.chocolatey-options }}
+        shell: bash
+        run: |
+          if [[ -n "${{ matrix.vcpkg-triplet }}" ]]; then
+            vcpkg install libsndfile --triplet="${{ matrix.vcpkg-triplet }}" --overlay-triplets="$GITHUB_WORKSPACE/vcpkg/triplets"
+          else
+            choco install libsndfile --no-progress ${{ matrix.chocolatey-options }}
+          fi
       - name: download fftw
         shell: bash
         run: |
@@ -477,14 +521,20 @@ jobs:
           curl -L https://www.steinberg.net/asiosdk -o asio.zip
           7z x asio.zip -y
           mv asiosdk_* $GITHUB_WORKSPACE/external_libraries/portaudio/asiosdk
+      - name: install readline
+        if: matrix.vcpkg-triplet
+        shell: bash
+        run: |
+          vcpkg install readline --triplet="${{ matrix.vcpkg-triplet }}" --overlay-triplets="$GITHUB_WORKSPACE/vcpkg/triplets"
       - name: configure
         shell: bash
         run: |
           export PATH=$Qt5_DIR/bin:$PATH
+          export VCPKG_ROOT=$VCPKG_INSTALLATION_ROOT
 
           mkdir $BUILD_PATH && cd $BUILD_PATH
 
-          cmake -G "${{ matrix.cmake-generator }}" -A "${{ matrix.cmake-arch }}" -D CMAKE_PREFIX_PATH="$Qt5_DIR" -D SUPERNOVA=ON -D SC_USE_QTWEBENGINE=${{ matrix.use-qtwebengine }} -D SC_ABLETON_LINK=${{ matrix.ableton-link }} -D CMAKE_BUILD_TYPE=Release .. # build type is specified here for MinGW build
+          cmake -G "${{ matrix.cmake-generator }}" -A "${{ matrix.cmake-arch }}" -D CMAKE_PREFIX_PATH="$Qt5_DIR" -D SUPERNOVA=ON -D SC_USE_QTWEBENGINE=${{ matrix.use-qtwebengine }} -D CMAKE_BUILD_TYPE=Release -DVCPKG_TARGET_TRIPLET="${{ matrix.vcpkg-triplet }}" .. # build type is specified here for MinGW build and for vcpkg
 
       - name: build
         shell: bash
@@ -497,12 +547,11 @@ jobs:
         shell: bash
         run: cd $INSTALL_PATH && 7z a $ARTIFACT_FILE.zip -tzip SuperCollider # this assumes that we end up with the build in the folder SuperCollider
       - name: upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         if: matrix.artifact-suffix
         with:
           name: ${{ env.ARTIFACT_FILE }}
           path: ${{ env.INSTALL_PATH }}/${{ env.ARTIFACT_FILE }}.zip
-          retention-days: 7 # quickly remove test artifacts
       - name: create installer
         if: matrix.create-installer == true
         shell: bash
@@ -510,12 +559,11 @@ jobs:
           export PATH="C:\Program Files (x86)\NSIS":$PATH
           cmake --build $BUILD_PATH --config Release --target installer
       - name: upload installer
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         if: matrix.create-installer == true
         with:
           name: ${{ env.INSTALLER_FILE }}
           path: ${{ env.INSTALL_PATH }}/*.exe
-          retention-days: 7 # quickly remove test artifacts
 
   test:
     strategy:
@@ -524,38 +572,45 @@ jobs:
         include:
 
           - name: macOS
-            runs-on: macos-10.15
+            runs-on: macos-12
             sclang: 'build/Install/SuperCollider/SuperCollider.app/Contents/MacOS/sclang'
-            artifact-suffix: macOS
+            artifact-suffix: macOS-universal
             artifact-extension: '.dmg'
 
           - name: Linux
-            runs-on: ubuntu-18.04
+            runs-on: ubuntu-22.04
             sclang: 'build/Install/bin/sclang'
-            artifact-suffix: linux-bionic-gcc10
+            artifact-suffix: linux-jammy-gcc12
 
-    needs: [lint, Linux, macOS] # unfortunately we can't use matrix expression here to make Linux test depend only on Linux build
+          # - name: Windows
+          #   runs-on: windows-2022
+          #   sclang: 'build/Install/SuperCollider/sclang'
+          #   artifact-suffix: win64
+
+    needs: [lint, Linux, macOS, Windows] # unfortunately we can't use matrix expression here to make Linux test depend only on Linux build
     runs-on: '${{ matrix.runs-on }}'
     name: 'test on ${{ matrix.name }}'
     env:
       INSTALL_PATH: ${{ github.workspace }}/build/Install
       ARTIFACT_FILE: 'SuperCollider-${{ needs.lint.outputs.sc-version }}-${{ matrix.artifact-suffix }}${{ matrix.artifact-extension }}'
-      QUARKS_PATH: ${{ github.workspace }}/build/Quarks
       TESTS_PATH: ${{ github.workspace }}/testsuite/classlibrary
       SCLANG: ${{ github.workspace }}/${{ matrix.sclang }}
-      SCRIPT_PROTO: ${{ github.workspace }}/testsuite/scripts/gha_test_run_proto.json
-      SCRIPT_RUN: ${{ github.workspace }}/testsuite/scripts/run/gha_test_run.json
-      QPM_URL: git+https://github.com/supercollider/qpm.git@topic/testclass-setup-teardown
+      TEST_LIST_PROTO: ${{ github.workspace }}/testsuite/scripts/test_run_proto_gha.scd
+      TEST_LIST_RESULT: ${{ github.workspace }}/testsuite/scripts/run/gha_result.scxtar
+      SCRIPT_RUN_TESTS: ${{ github.workspace }}/testsuite/scripts/sclang_test_runner.scd
+      SCRIPT_ADD_PATH: ${{ github.workspace }}/testsuite/scripts/add_include_path.scd
+      SCRIPT_PRINT_RESULTS: ${{ github.workspace }}/testsuite/scripts/print_results.scd
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: false # don't need submodules for testing
       - name: download artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: ${{ env.ARTIFACT_FILE }}
           path: ${{ env.INSTALL_PATH }}
       - name: extract artifact
+        shell: bash
         run: |
           cd $INSTALL_PATH
           echo Contents of `pwd`:
@@ -573,41 +628,54 @@ jobs:
         run: |
           # install dependencies
           sudo apt-get update
-          sudo apt-get install --yes libsndfile1 libavahi-client-dev libfftw3-dev libicu-dev libudev-dev qt5-default qtwebengine5-dev jackd1
+          sudo apt-get install --yes libsndfile1 libavahi-client-dev libfftw3-dev libicu-dev libudev-dev qtbase5-dev qtwebengine5-dev jackd1 socat
 
-          # add bin to PATH so qpm can find scsynth
+          # add bin to PATH so that scsynth can be found
           echo "$INSTALL_PATH/bin" >> $GITHUB_PATH
 
           # start jack
-          jackd --no-realtime -d dummy &
-      - name: setup python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '2.x'
-      - name: prepare tests
-        run: |
-          echo `python --version` # check version
-          sudo pip install -U pip setuptools
-          sudo pip install $QPM_URL
+          jackd --no-realtime --silent -d dummy &
 
-          # install API quark
-          mkdir $QUARKS_PATH && cd $QUARKS_PATH
-          git clone --depth=1 https://github.com/supercollider-quarks/API
-
-          # make working copy of the script
-          cp $SCRIPT_PROTO $SCRIPT_RUN
-      - name: run tests on Linux
-        if: runner.os == 'Linux'
-        env:
-          PYCHARM_HOSTED: 1 # enable color output
-          QPM_DEBUG: 1
-        run: xvfb-run --server-args="-screen 0, 1280x720x24" -a qpm test.run -l $SCRIPT_RUN --path $SCLANG --include $QUARKS_PATH $TESTS_PATH
-      - name: run tests on macOS
+          # start virtual display server
+          export DISPLAY=:99
+          echo "DISPLAY=$DISPLAY" >> $GITHUB_ENV
+          Xvfb $DISPLAY -screen 0 1024x768x16 &
+      - name: setup macOS environment
         if: runner.os == 'macOS'
         env:
-          PYCHARM_HOSTED: 1 # enable color output
-          QPM_DEBUG: 1
-        run: qpm test.run -l $SCRIPT_RUN --path $SCLANG --include $QUARKS_PATH $TESTS_PATH
+          HOMEBREW_NO_ANALYTICS: 1
+          HOMEBREW_NO_AUTO_UPDATE: 1
+          HOMEBREW_NO_INSTALL_CLEANUP: 1
+        run: brew install coreutils # to get 'timeout' utility
+      - name: setup Windows environment
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          # install jack
+          # even though SC on Windows doesn't use JACK directly
+          # it will use JackRouter ASIO device
+          curl -O -J -L https://github.com/jackaudio/jack2-releases/releases/download/v1.9.22/jack2-win64-v1.9.22.exe
+
+          echo "installing JACK2"
+          ./jack2-win64-v1.9.22.exe //TYPE="router" //SILENT //SUPPRESSMSGBOXES
+
+          # add bin to PATH so that scsynth can be found
+          echo "$INSTALL_PATH/SuperCollider" >> $GITHUB_PATH
+
+          # start jack
+          /c/Program\ Files/JACK2/jackd.exe --no-realtime -d dummy &
+      - name: run tests
+        shell: bash
+        continue-on-error: true
+        run: |
+          # add path
+          $SCLANG $SCRIPT_ADD_PATH $TESTS_PATH
+          # run tests
+          timeout 1200 $SCLANG $SCRIPT_RUN_TESTS $TEST_LIST_PROTO $TEST_LIST_RESULT
+      - name: post test results
+        shell: bash
+        run: |
+          $SCLANG $SCRIPT_PRINT_RESULTS $TEST_LIST_RESULT
 
   deploy_s3:
     strategy:
@@ -615,7 +683,7 @@ jobs:
       matrix:
         include:
 
-          - artifact-suffix: macOS
+          - artifact-suffix: macOS-universal
             s3-os-name: osx
             s3-artifact-suffx: ''
             s3-artifact-extension: 'dmg'
@@ -636,7 +704,7 @@ jobs:
 
     if: github.repository_owner == 'supercollider' && github.event_name != 'pull_request' # run in the main repo, but not on pull requests
     needs: [lint, macOS, Windows]
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     name: 'deploy ${{ matrix.artifact-suffix }} to s3'
     env:
       INSTALL_PATH: ${{ github.workspace }}/build/Install
@@ -649,7 +717,7 @@ jobs:
       S3_ROOT_URL: 'https://supercollider.s3.amazonaws.com'
     steps:
       - name: download artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         if: env.UPLOAD_TO_S3 == 'true'
         with:
           name: ${{ env.ARTIFACT_FILE }}
@@ -709,22 +777,24 @@ jobs:
   deploy_gh:
     if: startsWith(github.ref, 'refs/tags/') # run on tagged commits
     needs: [lint, macOS, Windows]
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     name: 'deploy release'
     env:
       INSTALL_PATH: ${{ github.workspace }}/Install
       ARTIFACT_FILE_PREFIX: 'SuperCollider-${{ needs.lint.outputs.sc-version }}'
     steps:
       - name: download artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           path: ${{ env.INSTALL_PATH }} # no "name" paramter - download all artifacts
       - name: upload to the release page
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            ${{ env.INSTALL_PATH }}/${{ env.ARTIFACT_FILE_PREFIX }}-macOS.dmg/*
-            ${{ env.INSTALL_PATH }}/${{ env.ARTIFACT_FILE_PREFIX }}-macOS-legacy.dmg/*
+            ${{ env.INSTALL_PATH }}/${{ env.ARTIFACT_FILE_PREFIX }}-macOS-x64.dmg/*
+            ${{ env.INSTALL_PATH }}/${{ env.ARTIFACT_FILE_PREFIX }}-macOS-universal.dmg/*
+            ${{ env.INSTALL_PATH }}/${{ env.ARTIFACT_FILE_PREFIX }}-macOS-arm64.dmg/*
+            ${{ env.INSTALL_PATH }}/${{ env.ARTIFACT_FILE_PREFIX }}-macOS-x64-legacy.dmg/*
             ${{ env.INSTALL_PATH }}/${{ env.ARTIFACT_FILE_PREFIX }}-win32-installer/*
             ${{ env.INSTALL_PATH }}/${{ env.ARTIFACT_FILE_PREFIX }}-win64-installer/*
             ${{ env.INSTALL_PATH }}/${{ env.ARTIFACT_FILE_PREFIX }}-win32/*

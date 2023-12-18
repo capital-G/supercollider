@@ -1,6 +1,7 @@
 Main : Process {
 	var <platform, argv;
 	var recvOSCfunc, prRecvOSCFunc;
+	var recvRawFunc, prRecvRawFunc;
 	var openPorts;
 
 		// proof-of-concept: the interpreter can set this variable when executing code in a file
@@ -19,7 +20,21 @@ Main : Process {
 		// set the 's' interpreter variable to the default server.
 		interpreter.s = Server.default;
 
-		openPorts = Set[NetAddr.langPort];
+		// 'langPort' may fail if no UDP port was available
+		// this wreaks several manners of havoc, so, inform the user
+		// also allow the rest of init to proceed
+		try {
+			openPorts = Set[NetAddr.langPort];
+		} { |error|
+			openPorts = Set.new;  // don't crash elsewhere
+			"\n\nWARNING: An error occurred related to network initialization.".postln;
+			"The error is '%'.\n".postf(error.errorString);
+			"There may be an error message earlier in the sclang startup log.".postln;
+			"Please look backward in the post window and report the error on the mailing list or user forum.".postln;
+			"You may be able to resolve the problem by killing 'sclang%' processes in your system's task manager.\n\n"
+			.postf(if(this.platform.name == \windows) { ".exe" } { "" });
+		};
+
 		this.platform.startup;
 		StartUp.run;
 
@@ -76,11 +91,16 @@ Main : Process {
 		CmdPeriod.hardRun;
 	}
 
-	recvOSCmessage { arg time, replyAddr, recvPort, msg;
-		// this method is called when an OSC message is received.
+	// recvOSCmessage, recvRawMessage are invoked from C++ when OSC or raw UDP messages are recieved
+	recvOSCmessage { |time, replyAddr, recvPort, msg|
 		recvOSCfunc.value(time, replyAddr, msg);
 		prRecvOSCFunc.value(msg, time, replyAddr, recvPort); // same order as OSCFunc
 		OSCresponder.respond(time, replyAddr, msg);
+	}
+
+	recvRawMessage { |time, replyAddr, recvPort, msg|
+		recvRawFunc.value(time, replyAddr, msg);
+		prRecvRawFunc.value(msg, time, replyAddr, recvPort);
 	}
 
 	addOSCRecvFunc { |func| prRecvOSCFunc = prRecvOSCFunc.addFunc(func) }
@@ -89,18 +109,43 @@ Main : Process {
 
 	replaceOSCRecvFunc { |func, newFunc| prRecvOSCFunc = prRecvOSCFunc.replaceFunc(func, newFunc) }
 
+	addRawRecvFunc { |func| prRecvRawFunc = prRecvRawFunc.addFunc(func) }
+
+	removeRawRecvFunc { |func| prRecvRawFunc = prRecvRawFunc.removeFunc(func) }
+
+	replaceRawRecvFunc { |func, newFunc| prRecvRawFunc = prRecvRawFunc.replaceFunc(func, newFunc) }
+
 	openPorts { ^openPorts.copy } // don't allow the Set to be modified from the outside
 
-	openUDPPort {|portNum|
+	openUDPPort { |portNum, type=\osc|
+
 		var result;
 		if(openPorts.includes(portNum), {^true});
-		result = this.prOpenUDPPort(portNum);
+
+		switch (type,
+			\osc, {
+				result = this.prOpenOSCUDPPort(portNum)
+
+			},
+			\raw, {
+				result = this.prOpenRawUDPPort(portNum)
+			},
+			{
+				Exception("Cannot open UDP port with type '%' because it doesn't exist (types are \\osc, \\raw).".format(type)).throw
+			}
+		);
+
 		if(result, { openPorts = openPorts.add(portNum); });
 		^result;
 	}
 
-	prOpenUDPPort {|portNum|
-		_OpenUDPPort
+	prOpenOSCUDPPort {|portNum|
+		_OpenOSCUDPPort
+		^this.primitiveFailed;
+	}
+
+	prOpenRawUDPPort {|portNum|
+		_OpenRawUDPPort
 		^this.primitiveFailed;
 	}
 

@@ -240,8 +240,14 @@ class SC_UdpInPort {
         if (error == boost::asio::error::operation_aborted)
             return; /* we're done */
 
+        if (error == boost::asio::error::connection_refused) {
+            // avoid windows error message
+            startReceiveUDP();
+            return;
+        }
+
         if (error) {
-            printf("SC_UdpInPort: received error - %s", error.message().c_str());
+            printf("(scsynth) SC_UdpInPort: received error - %s\n", error.message().c_str());
             startReceiveUDP();
             return;
         }
@@ -604,12 +610,10 @@ EMSCRIPTEN_BINDINGS(Web_Audio) {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 static void asioFunction() {
+    /* NB: on macOS we just keep the default thread priority */
 #ifdef NOVA_TT_PRIORITY_RT
-    std::pair<int, int> priorities = nova::thread_priority_interval_rt();
-    nova::thread_set_priority_rt((priorities.first + priorities.second) / 2);
-#else
-    std::pair<int, int> priorities = nova::thread_priority_interval();
-    nova::thread_set_priority(priorities.second);
+    int priority = nova::thread_priority_interval_rt().first;
+    nova::thread_set_priority_rt(priority);
 #endif
 
     boost::asio::io_service::work work(ioService);
