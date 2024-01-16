@@ -1,0 +1,19 @@
+exclude: "external_libraries"
+
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v2.3.0
+    hooks:
+    -   id: check-yaml
+    -   id: check-json
+    -   id: check-merge-conflict
+    -   id: check-added-large-files
+-   repo: local
+    hooks:
+      - id: apply-formatting
+        name: Check C++ formatting
+        entry: python3 tools/clang-format.py format
+        language: python 
+        pass_filenames: false
+        additional_dependencies: [clang-format==14.0.6]
+        require_serial: true
