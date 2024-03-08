@@ -38,7 +38,7 @@
 
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/string_file.hpp>
+#include <boost_string_file.hpp>
 
 #include "PyrParseNode.h"
 #include "Bison/lang11d_tab.h"

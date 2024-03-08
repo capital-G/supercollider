@@ -46,7 +46,7 @@
 #include <string>
 
 #include <boost/filesystem/operations.hpp> // recursive_directory_iterator
-#include <boost/filesystem/string_file.hpp> // load_string_file
+#include <boost_string_file.hpp> // load_string_file
 
 namespace bfs = boost::filesystem;
 
