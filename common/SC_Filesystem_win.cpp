@@ -67,7 +67,7 @@ SC_Filesystem::Glob* SC_Filesystem::makeGlob(const char* pattern) {
     // remove a trailing backslash. Even if searching with 'foo/.', this will
     // change to 'foo' harmlessly. Use has_parent_path() because otherwise '.'
     // (referring to the CWD) won't be recognized as a valid query.
-    if (path.filename_is_dot() && path.has_parent_path())
+    if (path.filename() == "." && path.has_parent_path())
         path = path.parent_path();
 
     // expand to home directory, if path starts with tilde
