@@ -103,7 +103,7 @@ Path SC_Filesystem::globNext(Glob* glob) {
 
         if (!::FindNextFileW(glob->mHandle, &glob->mEntry))
             glob->mAtEnd = true;
-    } while (glob->mFilename.filename_is_dot() || glob->mFilename.filename_is_dot_dot());
+    } while (glob->mFilename.filename() == "." || glob->mFilename.filename() == "..");
 
     // add preferred separator (L'\\') for directories on Windows, to match
     // POSIX globbing. boost::filesystem::is_directory won't work for this because
