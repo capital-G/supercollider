@@ -90,7 +90,7 @@ inline std::filesystem::path utf8_str_to_path(const std::string& s) {
 #ifdef _WIN32
     std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
     std::wstring wideString = converter.from_bytes(s);
-    return std::filesystem::path(wideString);
+    return std::filesystem::path(std::move(wideString));
 #else
     return std::filesystem::path(s);
 #endif // _WIN32
