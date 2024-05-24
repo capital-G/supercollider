@@ -425,6 +425,10 @@ elseif(MINGW)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mstackrealign")
 endif()
 
+if (MINGW)
+  set (CMAKE_CXX_FLAGS "{CMAKE_CXX_FLAGS} -lstdc++fs -std=c++17")
+endif()
+
 # support for building on Raspberry Pi 1/2/3 and BBB
 if(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7l")
   foreach(flag CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
