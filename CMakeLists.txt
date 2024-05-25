@@ -426,7 +426,7 @@ elseif(MINGW)
 endif()
 
 if (MINGW)
-  set (CMAKE_CXX_FLAGS "{CMAKE_CXX_FLAGS} -lstdc++fs -std=c++17")
+  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lstdc++fs -std=c++17")
 endif()
 
 # support for building on Raspberry Pi 1/2/3 and BBB
