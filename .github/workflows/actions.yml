@@ -571,19 +571,24 @@ jobs:
       matrix:
         include:
 
-          - job-name: 'raspios_lite'
+          - job-name: 'raspios lite'
             base-image: 'raspios_lite:2023-05-03'
-            headless: 'OFF'
+            headless: false
             cpu-info: raspberrypi_4b
 
-          - job-name: 'raspios_lite_arm64'
-            base-image: 'raspios_lite_arm64:2023-05-03'
-            headless: 'OFF'
+          - job-name: 'raspios lite headless'
+            base-image: 'raspios_lite:2023-05-03'
+            headless: false
             cpu-info: raspberrypi_4b
 
-          - job-name: 'raspios_lite_arm64-headless'
+          - job-name: 'raspios64 lite'
             base-image: 'raspios_lite_arm64:2023-05-03'
-            headless: 'ON'
+            headless: false
+            cpu-info: raspberrypi_4b
+
+          - job-name: 'raspios64 lite headless'
+            base-image: 'raspios_lite_arm64:2023-05-03'
+            headless: true
             cpu-info: raspberrypi_4b
 
     name: Raspberry ${{ matrix.job-name }}
@@ -592,8 +597,12 @@ jobs:
         with:
           submodules: recursive
       - uses: pguyot/arm-runner-action@v2
+        if: matrix.headless
+        name: Headless build
         with:
+          image_additional_mb: 1024
           base_image: ${{ matrix.base-image }}
+          cpu_info: ${{ matrix.cpu-info }}
           commands: |
               apt-get update
               apt-get install --yes \
@@ -620,6 +629,48 @@ jobs:
                 -DSC_IDE=OFF \
                 -DNO_X11=ON \
                 -DSC_QT=OFF \
+                ..
+              cmake \
+                --build . \
+                --config Release \
+                --target all \
+                -- -j3
+      - uses: pguyot/arm-runner-action@v2
+        if: !matrix.
+        name: GUI build
+        with:
+          image_additional_mb: 1024
+          base_image: ${{ matrix.base-image }}
+          cpu_info: ${{ matrix.cpu-info }}
+          commands: |
+              apt-get update
+              apt-get install --yes \
+                libjack-jackd2-dev \
+                libsndfile1-dev \
+                libasound2-dev \
+                libavahi-client-dev \
+                libreadline-dev \
+                libfftw3-dev \
+                libxt-dev \
+                libudev-dev \
+                libncurses5-dev \
+                cmake \
+                git \
+                qttools5-dev \
+                qttools5-dev-tools \
+                qtbase5-dev \
+                libqt5svg5-dev \
+                qjackctl
+              mkdir build
+              cd build
+              cmake \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DSUPERNOVA=OFF \
+                -DSC_ED=OFF \
+                -DSC_EL=OFF \
+                -DSC_VIM=ON 
+                -DNATIVE=ON \
+                -DSC_USE_QTWEBENGINE:BOOL=OFF \
                 ..
               cmake \
                 --build . \
