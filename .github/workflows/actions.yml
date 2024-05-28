@@ -597,6 +597,7 @@ jobs:
           commands: |
               apt-get update
               apt-get install --yes \
+                libjack-jackd2-dev \
                 libsamplerate0-dev \
                 libsndfile1-dev \
                 libasound2-dev \
@@ -607,14 +608,6 @@ jobs:
                 libncurses5-dev \
                 cmake \
                 git
-              git clone https://github.com/jackaudio/jack2 --depth 1
-              cd jack2
-              ./waf configure --alsa --libdir=/usr/lib/arm-linux-gnueabihf/
-              ./waf build
-              ./waf install
-              ldconfig
-              cd ..
-              rm -rf jack2
               mkdir build
               cd build
               cmake \
