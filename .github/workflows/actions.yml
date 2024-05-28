@@ -571,30 +571,34 @@ jobs:
       matrix:
         include:
 
-          - job-name: 'raspios lite'
+          - job-name: 'raspios'
             base-image: 'raspios_lite:2023-05-03'
             headless: false
             artifact-suffix: 'raspios'
+            image-suffix: arm
 
-          - job-name: 'raspios lite headless'
+          - job-name: 'raspios headless'
             base-image: 'raspios_lite:2023-05-03'
             headless: true
             artifact-suffix: 'raspios-headless'
+            image-suffix: arm
 
-          - job-name: 'raspios64 lite'
+          - job-name: 'raspios64'
             base-image: 'raspios_lite_arm64:2023-05-03'
             headless: false
             artifact-suffix: 'raspios64'
+            image-suffix: arm64
 
-          - job-name: 'raspios64 lite headless'
+          - job-name: 'raspios64 headless'
             base-image: 'raspios_lite_arm64:2023-05-03'
             headless: true
             artifact-suffix: 'raspios64-headless'
+            image-suffix: arm64
 
     name: Raspberry ${{ matrix.job-name }}
     env:
       INSTALL_PATH: '/home/sc/'
-      ARTIFACT_FILE: 'SuperCollider-${{ needs.lint.outputs.sc-version }}-${{ matrix.artifact-suffix }}' 
+      ARTIFACT_FILE: 'SuperCollider-${{ needs.lint.outputs.sc-version }}-${{ matrix.artifact-suffix }}-${{ matrix.image-suffix }}' 
       RASPIOS_IMAGE_PATH: $RUNNER_TEMP/raspios_cache.img 
     steps:
       - uses: actions/checkout@v3
@@ -611,6 +615,7 @@ jobs:
         with:
           # we don't want to optimize as it's two-stage
           optimize_image: no
+          image_additional_mb: 4096
           base_image: ${{ matrix.base-image }}
           commands: |
             apt-get update
@@ -640,7 +645,6 @@ jobs:
         name: Headless build
         with:
           base_image: file://$RASPIOS_IMAGE_PATH
-          image_additional_mb: 4096
           bind_mount_repository: true
           commands: |
               mkdir build
@@ -670,7 +674,6 @@ jobs:
         name: GUI build
         with:
           base_image: file://$RUNNER_TEMP/raspios_cache.img
-          image_additional_mb: 4096
           bind_mount_repository: true
           commands: |
               mkdir build
