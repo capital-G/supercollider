@@ -674,7 +674,7 @@ jobs:
                 -DSUPERNOVA=OFF \
                 -DSC_ED=OFF \
                 -DSC_EL=OFF \
-                -DSC_VIM=ON 
+                -DSC_VIM=ON \
                 -DNATIVE=ON \
                 -DSC_USE_QTWEBENGINE:BOOL=OFF \
                 ..
