@@ -592,6 +592,9 @@ jobs:
             cpu-info: raspberrypi_4b
 
     name: Raspberry ${{ matrix.job-name }}
+    env:
+      INSTALL_PATH: "/home/sc/"
+      ARTIFACT_FILE: "SuperColliderRaspberry" 
     steps:
       - uses: actions/checkout@v3
         with:
@@ -600,7 +603,7 @@ jobs:
         if: matrix.headless
         name: Headless build
         with:
-          image_additional_mb: 1024
+          image_additional_mb: 4096
           base_image: ${{ matrix.base-image }}
           cpu_info: ${{ matrix.cpu-info }}
           commands: |
@@ -621,6 +624,7 @@ jobs:
               cd build
               cmake \
                 -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_INSTALL_PREFIX:PATH=$INSTALL_PATH \
                 -DSUPERNOVA=OFF \
                 -DSC_ED=OFF \
                 -DSC_EL=OFF \
@@ -633,13 +637,16 @@ jobs:
               cmake \
                 --build . \
                 --config Release \
-                --target all \
+                --target install \
                 -- -j3
+              cd $INSTALL_PATH && zip --symlinks -r $ARTIFACT_FILE.zip .
+              mv $ARTIFACT_FILE.zip /tmp/
+        
       - uses: pguyot/arm-runner-action@v2
         if: !matrix.headless
         name: GUI build
         with:
-          image_additional_mb: 1024
+          image_additional_mb: 4096
           base_image: ${{ matrix.base-image }}
           cpu_info: ${{ matrix.cpu-info }}
           commands: |
@@ -665,6 +672,7 @@ jobs:
               cd build
               cmake \
                 -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_INSTALL_PREFIX:PATH=$INSTALL_PATH \
                 -DSUPERNOVA=OFF \
                 -DSC_ED=OFF \
                 -DSC_EL=OFF \
@@ -675,8 +683,10 @@ jobs:
               cmake \
                 --build . \
                 --config Release \
-                --target all \
+                --target install \
                 -- -j3
+              cd $INSTALL_PATH && zip --symlinks -r $ARTIFACT_FILE.zip .
+              mv $ARTIFACT_FILE.zip /tmp/
 
   test:
     strategy:
