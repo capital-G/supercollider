@@ -593,32 +593,56 @@ jobs:
 
     name: Raspberry ${{ matrix.job-name }}
     env:
-      INSTALL_PATH: "/home/sc/"
+      INSTALL_PATH: '/home/sc/'
       ARTIFACT_FILE: 'SuperCollider-${{ needs.lint.outputs.sc-version }}-${{ matrix.artifact-suffix }}' 
+      RASPIOS_IMAGE_PATH: $RUNNER_TEMP/raspios_cache.img 
     steps:
       - uses: actions/checkout@v3
         with:
           submodules: recursive
+      - uses: actions/cache@v4
+        id: cache
+        with:
+          path: $RASPIOS_IMAGE_PATH
+          key: ${{ matrix.base-image }}-${{ hashFiles('**/actions.yml') }}
+      - uses: pguyot/arm-runner-action@v2
+        id: install_dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        with:
+          # we don't want to optimize as it's two-stage
+          optimize_image: no
+          base_image: ${{ matrix.base-image }}
+          commands: |
+            apt-get update
+            apt-get install --yes \
+              libjack-jackd2-dev \
+              libsndfile1-dev \
+              libasound2-dev \
+              libavahi-client-dev \
+              libreadline-dev \
+              libfftw3-dev \
+              libxt-dev \
+              libudev-dev \
+              libncurses5-dev \
+              cmake \
+              git \
+              qttools5-dev \
+              qttools5-dev-tools \
+              qtbase5-dev \
+              libqt5svg5-dev \
+              qjackctl
+      - name: Move and rename image with dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          mv ${{ steps.install_dependencies.outputs.image }} $RASPIOS_IMAGE_PATH
       - uses: pguyot/arm-runner-action@v2
         if: matrix.headless
         name: Headless build
         with:
+          base_image: file://$RASPIOS_IMAGE_PATH
           image_additional_mb: 4096
-          base_image: ${{ matrix.base-image }}
+          bind_mount_repository: true
           commands: |
-              apt-get update
-              apt-get install --yes \
-                libjack-jackd2-dev \
-                libsamplerate0-dev \
-                libsndfile1-dev \
-                libasound2-dev \
-                libavahi-client-dev \
-                libreadline-dev \
-                libfftw3-dev \
-                libudev-dev \
-                libncurses5-dev \
-                cmake \
-                git
               mkdir build
               cd build
               cmake \
@@ -645,28 +669,10 @@ jobs:
         if: matrix.headless == false
         name: GUI build
         with:
+          base_image: file://$RUNNER_TEMP/raspios_cache.img
           image_additional_mb: 4096
           bind_mount_repository: true
-          base_image: ${{ matrix.base-image }}
           commands: |
-              apt-get update
-              apt-get install --yes \
-                libjack-jackd2-dev \
-                libsndfile1-dev \
-                libasound2-dev \
-                libavahi-client-dev \
-                libreadline-dev \
-                libfftw3-dev \
-                libxt-dev \
-                libudev-dev \
-                libncurses5-dev \
-                cmake \
-                git \
-                qttools5-dev \
-                qttools5-dev-tools \
-                qtbase5-dev \
-                libqt5svg5-dev \
-                qjackctl
               mkdir build
               cd build
               cmake \
