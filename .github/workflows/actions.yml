@@ -636,7 +636,7 @@ jobs:
                 --target all \
                 -- -j3
       - uses: pguyot/arm-runner-action@v2
-        if: !matrix.
+        if: !matrix.headless
         name: GUI build
         with:
           image_additional_mb: 1024
