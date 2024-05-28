@@ -605,7 +605,6 @@ jobs:
         with:
           image_additional_mb: 4096
           base_image: ${{ matrix.base-image }}
-          cpu_info: ${{ matrix.cpu-info }}
           commands: |
               apt-get update
               apt-get install --yes \
@@ -648,7 +647,6 @@ jobs:
         with:
           image_additional_mb: 4096
           base_image: ${{ matrix.base-image }}
-          cpu_info: ${{ matrix.cpu-info }}
           commands: |
               apt-get update
               apt-get install --yes \
