@@ -578,7 +578,7 @@ jobs:
 
           - job-name: 'raspios lite headless'
             base-image: 'raspios_lite:2023-05-03'
-            headless: false
+            headless: true
             cpu-info: raspberrypi_4b
 
           - job-name: 'raspios64 lite'
