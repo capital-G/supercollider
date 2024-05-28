@@ -562,6 +562,76 @@ jobs:
         with:
           name: ${{ env.INSTALLER_FILE }}
           path: ${{ env.INSTALL_PATH }}/*.exe
+  
+  Raspberry:
+    needs: lint
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+
+          - job-name: 'raspios_lite'
+            base-image: 'raspios_lite:2023-05-03'
+            headless: 'OFF'
+            cpu-info: raspberrypi_4b
+
+          - job-name: 'raspios_lite_arm64'
+            base-image: 'raspios_lite_arm64:2023-05-03'
+            headless: 'OFF'
+            cpu-info: raspberrypi_4b
+
+          - job-name: 'raspios_lite_arm64-headless'
+            base-image: 'raspios_lite_arm64:2023-05-03'
+            headless: 'ON'
+            cpu-info: raspberrypi_4b
+
+    name: Raspberry ${{ matrix.job-name }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - uses: pguyot/arm-runner-action@v2
+        with:
+          base_image: ${{ matrix.base-image }}
+          commands: |
+              apt-get install \
+                libsamplerate0-dev \
+                libsndfile1-dev \
+                libasound2-dev \
+                libavahi-client-dev \
+                libreadline-dev \
+                libfftw3-dev \
+                libudev-dev \
+                libncurses5-dev \
+                cmake \
+                git
+              git clone https://github.com/jackaudio/jack2 --depth 1
+              cd jack2
+              ./waf configure --alsa --libdir=/usr/lib/arm-linux-gnueabihf/
+              ./waf build
+              ./waf install
+              ldconfig
+              cd ..
+              rm -rf jack2
+              mkdir build
+              cd build
+              cmake \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DSUPERNOVA=OFF \
+                -DSC_ED=OFF \
+                -DSC_EL=OFF \
+                -DSC_VIM=ON \
+                -DNATIVE=ON \
+                -DSC_IDE=OFF \
+                -DNO_X11=ON \
+                -DSC_QT=OFF \
+                ..
+              cmake \
+                --build . \
+                --config Release \
+                --target all \
+                -- -j3
 
   test:
     strategy:
