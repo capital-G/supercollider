@@ -595,7 +595,8 @@ jobs:
         with:
           base_image: ${{ matrix.base-image }}
           commands: |
-              apt-get install \
+              apt-get update
+              apt-get install --yes \
                 libsamplerate0-dev \
                 libsndfile1-dev \
                 libasound2-dev \
