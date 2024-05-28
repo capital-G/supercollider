@@ -599,7 +599,6 @@ jobs:
     env:
       INSTALL_PATH: '/home/sc/'
       ARTIFACT_FILE: 'SuperCollider-${{ needs.lint.outputs.sc-version }}-${{ matrix.artifact-suffix }}-${{ matrix.image-suffix }}' 
-      RASPIOS_IMAGE_PATH: $RUNNER_TEMP/raspios_cache.img 
     steps:
       - uses: actions/checkout@v3
         with:
@@ -607,10 +606,11 @@ jobs:
       - uses: actions/cache@v4
         id: cache
         with:
-          path: $RASPIOS_IMAGE_PATH
+          path: $RUNNER_TEMP/raspios_cache.img 
           key: ${{ matrix.base-image }}-${{ hashFiles('**/actions.yml') }}
       - uses: pguyot/arm-runner-action@v2
         id: install_dependencies
+        name: Install raspios dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         with:
           # we don't want to optimize as it's two-stage
@@ -636,15 +636,17 @@ jobs:
               qtbase5-dev \
               libqt5svg5-dev \
               qjackctl
+
       - name: Move and rename image with dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          mv ${{ steps.install_dependencies.outputs.image }} $RASPIOS_IMAGE_PATH
+          mv ${{ steps.install_dependencies.outputs.image }} $RUNNER_TEMP/raspios_cache.img
+
       - uses: pguyot/arm-runner-action@v2
         if: matrix.headless
         name: Headless build
         with:
-          base_image: file://$RASPIOS_IMAGE_PATH
+          base_image: file://$RUNNER_TEMP/raspios_cache.img
           bind_mount_repository: true
           commands: |
               mkdir build
@@ -695,6 +697,7 @@ jobs:
                 -- -j3
               cd ..
               zip --symlinks -r $ARTIFACT_FILE.zip $INSTALL_PATH
+
       - name: upload artifacts
         uses: actions/upload-artifact@v3
         if: matrix.artifact-suffix
