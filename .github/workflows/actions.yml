@@ -428,17 +428,17 @@ jobs:
             create-installer: ${{ startsWith(github.ref, 'refs/tags/') }}
             installer-suffix: 'win64-installer'
 
-          - job-name: '64-bit MinGW'
-            fftw-arch: 'x64'
-            os-version: '2019'
-            qt-version: '5.15.2'
-            qt-arch: 'win64_mingw81'
-            fftw-url: 'ftp://ftp.fftw.org/pub/fftw/fftw-3.3.5-dll64.zip'
-            cmake-generator: 'MinGW Makefiles'
-            chocolatey-options: '' # '--forcex86' for 32-bit build
-            use-qtwebengine: 'OFF' # might need to be turned off for MinGW
-            qt-modules: ''
-            artifact-suffix: 'win64-mingw' # set if needed - will trigger artifact upload
+          # - job-name: '64-bit MinGW'
+          #   fftw-arch: 'x64'
+          #   os-version: '2019'
+          #   qt-version: '5.15.2'
+          #   qt-arch: 'win64_mingw81'
+          #   fftw-url: 'ftp://ftp.fftw.org/pub/fftw/fftw-3.3.5-dll64.zip'
+          #   cmake-generator: 'MinGW Makefiles'
+          #   chocolatey-options: '' # '--forcex86' for 32-bit build
+          #   use-qtwebengine: 'OFF' # might need to be turned off for MinGW
+          #   qt-modules: ''
+          #   artifact-suffix: 'win64-mingw' # set if needed - will trigger artifact upload
 
     name: Windows ${{ matrix.job-name }}
     env:
