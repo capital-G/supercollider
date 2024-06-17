@@ -173,6 +173,7 @@
       var Module = {
         preRun: [],
         postRun: [],
+        _malloc: (...args) => {console.log("malloc called with", args)},
         print: (function() {
           var element = document.getElementById('output');
           if (element) element.value = ''; // clear browser cache

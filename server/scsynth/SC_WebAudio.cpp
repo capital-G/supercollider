@@ -47,6 +47,7 @@ int64 oscTimeNow() { return OSCTime(getTime()); }
 
 static double waOscTimeSeconds() { return OSCTime(getTime()) * kOSCtoSecs; }
 
+// extern "C" void* EMSCRIPTEN_KEEPALIVE malloc;
 // Declare _malloc as an exported function
 extern "C" void* EMSCRIPTEN_KEEPALIVE my_malloc(int size) {
     return malloc(size);
@@ -57,6 +58,7 @@ extern "C" void* EMSCRIPTEN_KEEPALIVE my_malloc(int size) {
 extern "C" void EMSCRIPTEN_KEEPALIVE my_free(void* pointer) {
     free(pointer);
 }
+// extern "C" void EMSCRIPTEN_KEEPALIVE free;
 
 
 void initializeScheduler() {}
