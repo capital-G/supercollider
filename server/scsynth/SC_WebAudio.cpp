@@ -39,13 +39,25 @@ using namespace emscripten;
 
 static const char* kWebAudioIdent = "SC_WebAudio";
 
-// #define SC_WEB_AUDIO_DRIVER_DEBUG
+#define SC_WEB_AUDIO_DRIVER_DEBUG
 
 int32 server_timeseed() { return timeSeed(); }
 
 int64 oscTimeNow() { return OSCTime(getTime()); }
 
 static double waOscTimeSeconds() { return OSCTime(getTime()) * kOSCtoSecs; }
+
+// Declare _malloc as an exported function
+extern "C" void* EMSCRIPTEN_KEEPALIVE my_malloc(int size) {
+    return malloc(size);
+}
+
+// extern "C" void* EMCSCRIPTEN_KEEPALIVE malloc;
+
+extern "C" void EMSCRIPTEN_KEEPALIVE my_free(void* pointer) {
+    free(pointer);
+}
+
 
 void initializeScheduler() {}
 
@@ -140,10 +152,10 @@ SC_WebAudioDriver::~SC_WebAudioDriver() {
                 ad.context.close();
             }
             if (ad.bufInPtr) {
-                Module._free(ad.bufInPtr);
+                Module._my_free(ad.bufInPtr);
             }
             if (ad.bufOutPtr) {
-                Module._free(ad.bufOutPtr);
+                Module._my_free(ad.bufOutPtr);
             }
             Module.audioDriver = undefined;
         }
@@ -184,6 +196,7 @@ void SC_WebAudioDriver::WaRun() {
         float* bufOut = mBufOutPtr;
         int bufSizeWA = mBufSize;
         int numFrames = NumSamplesPerCallback(); // should be the same as bufSizeWA; redundant? assert?
+        // scprintf("num frames: %s\n", numFrames); 
         int stepSize = mWorld->mBufLength;
         int numSteps = numFrames / stepSize;
 
@@ -260,6 +273,7 @@ void SC_WebAudioDriver::WaRun() {
                     }
                 }
             }
+            // scprintf("out is: %d\n", tch); 
 
             // advance OSC time
             mOSCbuftime = oscTime = nextTime;
@@ -316,8 +330,8 @@ bool SC_WebAudioDriver::DriverSetup(int* outNumSamples, double* outSampleRate) {
         var bytesPerChan    = ad.bufSize * Float32Array.BYTES_PER_ELEMENT;
         var numInBytes      = ad.inChanCount  * bytesPerChan;
         var numOutBytes     = ad.outChanCount * bytesPerChan;
-        ad.bufInPtr         = Module._malloc(numInBytes );
-        ad.bufOutPtr        = Module._malloc(numOutBytes);
+        ad.bufInPtr         = Module._my_malloc(numInBytes);
+        ad.bufOutPtr        = Module._my_malloc(numOutBytes);
         ad.floatBufIn       = [];
         ad.floatBufOut      = [];
         ad.connected        = false;
