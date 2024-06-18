@@ -25,7 +25,21 @@ jobs:
             build-readline: false
             build-fftw: false
             artifact-suffix: "macOS-universal"
-            verify-app: false
+            verify-app: false # broken, see #6352
+
+          - job-name: "arm"
+            os-version: "14"
+            xcode-version: "15.4"
+            deployment-target: "11.0"
+            cmake-architectures: "arm64"
+            use-syslibs: false
+            shared-libscsynth: false
+            system-portaudio: true
+            build-libsndfile: false
+            build-readline: false
+            build-fftw: false
+            artifact-suffix: "macOS-arm"
+            verify-app: true
 
           - job-name: "x64 legacy"
             os-version: "12"
@@ -106,7 +120,7 @@ jobs:
 
       - name: cache homebrew universal packages
         uses: actions/cache@v4
-        if: matrix.cmake-architectures != 'x86_64' && (matrix.build-libsndfile != true || matrix.build-readline != true || matrix.build-fftw != true)
+        if: matrix.cmake-architectures == 'x86_64;arm64' && (matrix.build-libsndfile != true || matrix.build-readline != true || matrix.build-fftw != true)
         with:
           path: ${{ env.BREW_UNIVERSAL_WORKDIR }}
           key: ${{ runner.os }}-v1-${{ matrix.os-version }}-${{ matrix.xcode-version }}-${{ matrix.deployment-target }}-brew_universal-${{ steps.current-date.outputs.week }}
@@ -163,11 +177,11 @@ jobs:
         run: brew install yaml-cpp boost@1.76
 
       - name: install qt from homebrew
-        if: matrix.cmake-architectures == 'x86_64' && !matrix.qt-version
+        if: matrix.cmake-architectures != 'x86_64;arm64' && !matrix.qt-version
         run: brew install qt@5
 
       - name: install qt universal binary from homebrew
-        if: matrix.cmake-architectures != 'x86_64' && !matrix.qt-version
+        if: matrix.cmake-architectures == 'x86_64;arm64' && !matrix.qt-version
         run: ./brew-install-universal.sh qt@5
 
       - name: install qt using aqtinstall
