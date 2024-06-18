@@ -209,10 +209,11 @@ jobs:
             use-syslibs: false
             shared-libscsynth: false
             system-portaudio: true
-            build-libsndfile: false
+            build-libsndfile: true
             build-readline: false
             build-fftw: false
             artifact-suffix: "macOS-arm"
+            vcpkg-triplet: arm-osx-release-supercollider
             verify-app: true
 
           - job-name: 'x64 legacy'
