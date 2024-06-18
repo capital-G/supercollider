@@ -201,6 +201,20 @@ jobs:
             artifact-suffix: 'macOS-universal'
             verify-app: true
 
+          - job-name: "arm"
+            os-version: "14"
+            xcode-version: "15.4"
+            deployment-target: "11.0"
+            cmake-architectures: "arm64"
+            use-syslibs: false
+            shared-libscsynth: false
+            system-portaudio: true
+            build-libsndfile: false
+            build-readline: false
+            build-fftw: false
+            artifact-suffix: "macOS-arm"
+            verify-app: true
+
           - job-name: 'x64 legacy'
             os-version: '12'
             xcode-version: '13.4.1'
@@ -275,7 +289,7 @@ jobs:
           restore-keys: ${{ runner.os }}-${{ matrix.os-version }}-${{ matrix.xcode-version }}-${{ matrix.use-syslibs }}-${{ matrix.shared-libscsynth }}-${{ matrix.qt-version }}-${{ matrix.cmake-architectures }}-homebrew-
       - name: cache homebrew universal packages
         uses: actions/cache@v4
-        if: matrix.cmake-architectures != 'x86_64' && (matrix.build-libsndfile != true || matrix.build-readline != true || matrix.build-fftw != true)
+        if: matrix.cmake-architectures == 'x86_64;arm64' && (matrix.build-libsndfile != true || matrix.build-readline != true || matrix.build-fftw != true)
         with:
           path: ${{ env.BREW_UNIVERSAL_WORKDIR }}
           key: ${{ runner.os }}-v1-${{ matrix.os-version }}-${{ matrix.xcode-version }}-${{ matrix.deployment-target }}-brew_universal-${{ steps.current-date.outputs.week }}
@@ -296,7 +310,7 @@ jobs:
           if [[ "${{ matrix.build-fftw }}" != "true" ]]; then brew install fftw; fi
 
           # install universal versions of homebrew libraries
-          if [[ "${{ matrix.cmake-architectures }}" != "x86_64" ]]; then
+          if [[ "${{ matrix.cmake-architectures }}" == "x86_64;arm64" ]]; then
               echo "Downloading script for creating universal binaries from homebrew packages"
               curl -O -J -L https://gist.githubusercontent.com/dyfer/6c83905d4593750105897e51e87ec345/raw/1f89f2fe767a2e637387e74f0c8dcc86a0963f60/brew-install-universal.sh
               chmod +x brew-install-universal.sh
@@ -325,10 +339,10 @@ jobs:
         if: env.USE_SYSLIBS == 'true'
         run: brew install yaml-cpp boost@1.76
       - name: install qt from homebrew
-        if: matrix.cmake-architectures == 'x86_64' && !matrix.qt-version
+        if: matrix.cmake-architectures != 'x86_64;arm64' && !matrix.qt-version
         run: brew install qt@5
       - name: install qt universal binary from homebrew
-        if: matrix.cmake-architectures != 'x86_64' && !matrix.qt-version
+        if: matrix.cmake-architectures == 'x86_64;arm64' && !matrix.qt-version
         run: ./brew-install-universal.sh qt@5
       - name: install qt using aqtinstall
         uses: jurplel/install-qt-action@v3
