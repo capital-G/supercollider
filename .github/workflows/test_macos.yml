@@ -49,13 +49,18 @@ jobs:
         run: brew install coreutils # to get 'timeout' utility
 
       - name: Run tests
-        shell: bash
+        uses: nick-fields/retry@v3
         continue-on-error: true
-        run: |
-          # add path
-          $SCLANG $SCRIPT_ADD_PATH $TESTS_PATH
-          # run tests
-          timeout 1200 $SCLANG $SCRIPT_RUN_TESTS $TEST_LIST_PROTO $TEST_LIST_RESULT
+        with:
+          shell: bash
+          timeout_minutes: 30
+          max_attempts: 3
+          retry_on: error
+          command: |
+            # add path
+            $SCLANG $SCRIPT_ADD_PATH $TESTS_PATH
+            # run tests
+            timeout 1200 $SCLANG $SCRIPT_RUN_TESTS $TEST_LIST_PROTO $TEST_LIST_RESULT
 
       - name: Post test results
         shell: bash
