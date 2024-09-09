@@ -1327,10 +1327,12 @@ SCErr meth_rtmem(World* inWorld, int inSize, char* inData, ReplyAddress* inReply
 
     small_scpacket packet;
     packet.adds("/rtmem.reply");
-    packet.maketags(2);
+    packet.maketags(3);
     packet.addtag(',');
     packet.addtag('i');
     packet.addi(World_TotalFree(inWorld));
+    packet.addtag('i');
+    packet.addi(World_LargestFreeChunk(inWorld));
 
     CallSequencedCommand(SendReplyCmd, inWorld, packet.size(), packet.data(), inReply);
 
