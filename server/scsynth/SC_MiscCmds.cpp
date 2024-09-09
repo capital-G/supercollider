@@ -1321,6 +1321,22 @@ SCErr meth_dumpOSC(World* inWorld, int inSize, char* inData, ReplyAddress* inRep
     return kSCErr_None;
 }
 
+SCErr meth_rtmem(World* inWorld, int inSize, char* inData, ReplyAddress* inReply);
+SCErr meth_rtmem(World* inWorld, int inSize, char* inData, ReplyAddress* inReply) {
+    sc_msg_iter msg(inSize, inData);
+
+    small_scpacket packet;
+    packet.adds("/rtmem.reply");
+    packet.maketags(2);
+    packet.addtag(',');
+    packet.addtag('i');
+    packet.addi(World_TotalFree(inWorld));
+
+    CallSequencedCommand(SendReplyCmd, inWorld, packet.size(), packet.data(), inReply);
+
+    return kSCErr_None;
+}
+
 SCErr meth_version(World* inWorld, int inSize, char* inData, ReplyAddress* inReply);
 SCErr meth_version(World* inWorld, int inSize, char* inData, ReplyAddress* inReply) {
     sc_msg_iter msg(inSize, inData);
@@ -1871,6 +1887,7 @@ void initMiscCommands() {
     NEW_COMMAND(quit);
     NEW_COMMAND(clearSched);
     NEW_COMMAND(version);
+    NEW_COMMAND(rtmem);
 
     NEW_COMMAND(d_recv);
     NEW_COMMAND(d_load);
