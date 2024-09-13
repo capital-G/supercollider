@@ -6,3 +6,4 @@ ports:
   - name: qt5
   - name: qt5-qtwebengine
   - name: qt5-qtmacextras
+  - name: qt5-qttools
