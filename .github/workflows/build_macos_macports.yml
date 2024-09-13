@@ -19,9 +19,18 @@ jobs:
 
       - uses: melusina-org/setup-macports@v1
         name: Setup dependencies via macPorts
-        with:
-          parameters: ".github/macports-config.yml"
       
+      - name: Install dependencies
+        run:
+          port install \
+            portaudio \
+            libsndfile \
+            readline \
+            fftw-3 \
+            qt5 \
+            qt5-qtwebengine \
+            qt5-qttools
+
       - name: configure
         run: |
           mkdir $BUILD_PATH && cd $BUILD_PATH
