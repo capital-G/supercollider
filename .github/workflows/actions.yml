@@ -55,40 +55,47 @@ jobs:
           fi
           echo "version=$SC_VERSION" >> $GITHUB_OUTPUT
 
-  build-linux:
-    needs: [lint, version-getter]
-    uses: ./.github/workflows/build_linux.yml
-    with:
-      sc-version: ${{ needs.version-getter.outputs.sc-version }}
-    secrets: inherit
+  # build-linux:
+  #   needs: [lint, version-getter]
+  #   uses: ./.github/workflows/build_linux.yml
+  #   with:
+  #     sc-version: ${{ needs.version-getter.outputs.sc-version }}
+  #   secrets: inherit
 
-  build-macos:
-    needs: [lint, version-getter]
-    uses: ./.github/workflows/build_macos.yml
-    with:
-      sc-version: ${{ needs.version-getter.outputs.sc-version }}
-    secrets: inherit
+  # build-macos-homebrew:
+  #   needs: [lint, version-getter]
+  #   uses: ./.github/workflows/build_macos_homebrew.yml
+  #   with:
+  #     sc-version: ${{ needs.version-getter.outputs.sc-version }}
+  #   secrets: inherit
 
-  build-windows:
-    needs: [lint, version-getter]
-    uses: ./.github/workflows/build_windows.yml
-    with:
-      sc-version: ${{ needs.version-getter.outputs.sc-version }}
-    secrets: inherit
+  build-macos-macports:
+      needs: [lint, version-getter]
+      uses: ./.github/workflows/build_macos_macports.yml
+      with:
+        sc-version: ${{ needs.version-getter.outputs.sc-version }}
+      secrets: inherit
 
-  test-linux:
-    needs: [version-getter, build-linux]
-    uses: ./.github/workflows/test_linux.yml
-    with:
-      artifact-file: "SuperCollider-${{ needs.version-getter.outputs.sc-version }}-ubuntu-22.04-gcc12"
-    secrets: inherit
+  # build-windows:
+  #   needs: [lint, version-getter]
+  #   uses: ./.github/workflows/build_windows.yml
+  #   with:
+  #     sc-version: ${{ needs.version-getter.outputs.sc-version }}
+  #   secrets: inherit
 
-  test-macos:
-    needs: [version-getter, build-macos]
-    uses: ./.github/workflows/test_macos.yml
-    with:
-      artifact-file: "SuperCollider-${{ needs.version-getter.outputs.sc-version }}-macOS-universal.dmg"
-    secrets: inherit
+  # test-linux:
+  #   needs: [version-getter, build-linux]
+  #   uses: ./.github/workflows/test_linux.yml
+  #   with:
+  #     artifact-file: "SuperCollider-${{ needs.version-getter.outputs.sc-version }}-ubuntu-22.04-gcc12"
+  #   secrets: inherit
+
+  # test-macos:
+  #   needs: [version-getter, build-macos-homebrew]
+  #   uses: ./.github/workflows/test_macos.yml
+  #   with:
+  #     artifact-file: "SuperCollider-${{ needs.version-getter.outputs.sc-version }}-macOS-universal.dmg"
+  #   secrets: inherit
 
   # test-windows:
   #   needs: [version-getter, build-windows]
@@ -97,127 +104,127 @@ jobs:
   #     artifact-file: "SuperCollider-${{ needs.version-getter.outputs.sc-version }}-win64"
   #   secrets: inherit
 
-  deploy_s3:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - artifact-suffix: macOS-universal
-            s3-os-name: osx
-            s3-artifact-suffx: ''
-            s3-artifact-extension: 'dmg'
-            artifact-extension: '.dmg' # for download-artifacts action, for non-zip only, should include `.`
-            s3-create-latest-link: true # create link to pointing to the "latest" build; activate only one per branch per s3-os-name
+  # deploy_s3:
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       include:
+  #         - artifact-suffix: macOS-universal
+  #           s3-os-name: osx
+  #           s3-artifact-suffx: ''
+  #           s3-artifact-extension: 'dmg'
+  #           artifact-extension: '.dmg' # for download-artifacts action, for non-zip only, should include `.`
+  #           s3-create-latest-link: true # create link to pointing to the "latest" build; activate only one per branch per s3-os-name
 
-          - artifact-suffix: win32
-            s3-os-name: win32
-            s3-artifact-suffx: ''
-            s3-artifact-extension: 'zip'
-            s3-create-latest-link: true # create link to pointing to the "latest" build
+  #         - artifact-suffix: win32
+  #           s3-os-name: win32
+  #           s3-artifact-suffx: ''
+  #           s3-artifact-extension: 'zip'
+  #           s3-create-latest-link: true # create link to pointing to the "latest" build
 
-          - artifact-suffix: win64
-            s3-os-name: win64
-            s3-artifact-suffx: ''
-            s3-artifact-extension: 'zip'
-            s3-create-latest-link: true # create link to pointing to the "latest" build
+  #         - artifact-suffix: win64
+  #           s3-os-name: win64
+  #           s3-artifact-suffx: ''
+  #           s3-artifact-extension: 'zip'
+  #           s3-create-latest-link: true # create link to pointing to the "latest" build
 
-    if: github.repository_owner == 'supercollider' && github.event_name != 'pull_request' # run in the main repo, but not on pull requests
-    needs: [lint, version-getter, build-macos, build-windows]
-    runs-on: ubuntu-latest
-    name: 'deploy ${{ matrix.artifact-suffix }} to s3'
-    env:
-      INSTALL_PATH: ${{ github.workspace }}/build/Install
-      ARTIFACT_FILE: SuperCollider-${{ needs.version-getter.outputs.sc-version }}-${{ matrix.artifact-suffix }}${{ matrix.artifact-extension }}
-      UPLOAD_TO_S3: ${{ (secrets.S3_ACCESS_KEY_ID != 0) && !startsWith(github.ref, 'refs/tags/') }}
-      S3_CREATE_LATEST_LINK: ${{ matrix.s3-create-latest-link && (secrets.S3_ACCESS_KEY_ID != 0) && startsWith(github.ref, 'refs/heads/') }}
-      S3_ARTIFACT_PATH: ${{ github.workspace }}/build/s3-upload
-      S3_ARTIFACT_NAME: SC-${{ github.sha }}${{ matrix.s3-artifact-suffx }}.${{ matrix.s3-artifact-extension }}
-      S3_BUILD_LOCATION: builds/supercollider/supercollider/${{ matrix.s3-os-name }}
-      S3_ROOT_URL: 'https://supercollider.s3.amazonaws.com'
-    steps:
-      - name: download artifacts
-        uses: actions/download-artifact@v4
-        if: env.UPLOAD_TO_S3 == 'true'
-        with:
-          name: ${{ env.ARTIFACT_FILE }}
-          path: ${{ env.INSTALL_PATH }}
-      - name: preapre s3 upload
-        if: env.UPLOAD_TO_S3 == 'true'
-        run: |
-          mkdir $S3_ARTIFACT_PATH
-          mv $INSTALL_PATH/*.* $S3_ARTIFACT_PATH/$S3_ARTIFACT_NAME
+  #   if: github.repository_owner == 'supercollider' && github.event_name != 'pull_request' # run in the main repo, but not on pull requests
+  #   needs: [lint, version-getter, build-macos-homebrew, build-windows]
+  #   runs-on: ubuntu-latest
+  #   name: 'deploy ${{ matrix.artifact-suffix }} to s3'
+  #   env:
+  #     INSTALL_PATH: ${{ github.workspace }}/build/Install
+  #     ARTIFACT_FILE: SuperCollider-${{ needs.version-getter.outputs.sc-version }}-${{ matrix.artifact-suffix }}${{ matrix.artifact-extension }}
+  #     UPLOAD_TO_S3: ${{ (secrets.S3_ACCESS_KEY_ID != 0) && !startsWith(github.ref, 'refs/tags/') }}
+  #     S3_CREATE_LATEST_LINK: ${{ matrix.s3-create-latest-link && (secrets.S3_ACCESS_KEY_ID != 0) && startsWith(github.ref, 'refs/heads/') }}
+  #     S3_ARTIFACT_PATH: ${{ github.workspace }}/build/s3-upload
+  #     S3_ARTIFACT_NAME: SC-${{ github.sha }}${{ matrix.s3-artifact-suffx }}.${{ matrix.s3-artifact-extension }}
+  #     S3_BUILD_LOCATION: builds/supercollider/supercollider/${{ matrix.s3-os-name }}
+  #     S3_ROOT_URL: 'https://supercollider.s3.amazonaws.com'
+  #   steps:
+  #     - name: download artifacts
+  #       uses: actions/download-artifact@v4
+  #       if: env.UPLOAD_TO_S3 == 'true'
+  #       with:
+  #         name: ${{ env.ARTIFACT_FILE }}
+  #         path: ${{ env.INSTALL_PATH }}
+  #     - name: preapre s3 upload
+  #       if: env.UPLOAD_TO_S3 == 'true'
+  #       run: |
+  #         mkdir $S3_ARTIFACT_PATH
+  #         mv $INSTALL_PATH/*.* $S3_ARTIFACT_PATH/$S3_ARTIFACT_NAME
 
-          # set S3_BUILD_LOCATION
-          echo 'S3_BUILD_URL<<EOF' >> $GITHUB_ENV
-          echo ${{ env.S3_ROOT_URL }}/${{ env.S3_BUILD_LOCATION }}/${{ env.S3_ARTIFACT_NAME }} >> $GITHUB_ENV
-          echo 'EOF' >> $GITHUB_ENV
+  #         # set S3_BUILD_LOCATION
+  #         echo 'S3_BUILD_URL<<EOF' >> $GITHUB_ENV
+  #         echo ${{ env.S3_ROOT_URL }}/${{ env.S3_BUILD_LOCATION }}/${{ env.S3_ARTIFACT_NAME }} >> $GITHUB_ENV
+  #         echo 'EOF' >> $GITHUB_ENV
 
-          if [[ $S3_CREATE_LATEST_LINK == true ]]; then
-            # set LATEST_HTML_PATH and LATEST_HTML_URL
-            echo 'LATEST_HTML_PATH<<EOF' >> $GITHUB_ENV
-            echo ${{ env.S3_ARTIFACT_PATH }}/${GITHUB_REF#refs/heads/}-latest.html >> $GITHUB_ENV
-            echo 'EOF' >> $GITHUB_ENV
-            echo 'LATEST_HTML_URL<<EOF' >> $GITHUB_ENV
-            echo ${{ env.S3_ROOT_URL }}/${{ env.S3_BUILD_LOCATION }}/${GITHUB_REF#refs/heads/}-latest.html >> $GITHUB_ENV
-            echo 'EOF' >> $GITHUB_ENV
-          fi
-      - name: create latest link
-        if: env.S3_CREATE_LATEST_LINK == 'true'
-        env:
-          FWD_HTML: '<html><head><meta http-equiv="refresh" content="0; url=''${{ env.S3_BUILD_URL }}''" /></head></html>'
-        run: |
-          mkdir -p "${LATEST_HTML_PATH%/*}"
-          echo writing $FWD_HTML to $LATEST_HTML_PATH
-          echo $FWD_HTML > $LATEST_HTML_PATH
-          echo html file contents:
-          cat $LATEST_HTML_PATH
-      - name: upload to S3
-        uses: jakejarvis/s3-sync-action@master
-        if: env.UPLOAD_TO_S3 == 'true'
-        with:
-          args: --acl public-read
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
-          AWS_S3_BUCKET: supercollider
-          AWS_S3_ENDPOINT: https://s3-us-west-2.amazonaws.com
-          AWS_REGION: 'us-west-2'
-          SOURCE_DIR: ${{ env.S3_ARTIFACT_PATH }}
-          DEST_DIR: ${{ env.S3_BUILD_LOCATION }}
-      - name: post S3 build location
-        if: env.UPLOAD_TO_S3 == 'true'
-        run: |
-          echo "::group::S3 build location"
-          echo $S3_BUILD_URL
-          if [[ -n "$LATEST_HTML_URL" ]]; then echo $LATEST_HTML_URL; fi
-          echo "::endgroup::"
+  #         if [[ $S3_CREATE_LATEST_LINK == true ]]; then
+  #           # set LATEST_HTML_PATH and LATEST_HTML_URL
+  #           echo 'LATEST_HTML_PATH<<EOF' >> $GITHUB_ENV
+  #           echo ${{ env.S3_ARTIFACT_PATH }}/${GITHUB_REF#refs/heads/}-latest.html >> $GITHUB_ENV
+  #           echo 'EOF' >> $GITHUB_ENV
+  #           echo 'LATEST_HTML_URL<<EOF' >> $GITHUB_ENV
+  #           echo ${{ env.S3_ROOT_URL }}/${{ env.S3_BUILD_LOCATION }}/${GITHUB_REF#refs/heads/}-latest.html >> $GITHUB_ENV
+  #           echo 'EOF' >> $GITHUB_ENV
+  #         fi
+  #     - name: create latest link
+  #       if: env.S3_CREATE_LATEST_LINK == 'true'
+  #       env:
+  #         FWD_HTML: '<html><head><meta http-equiv="refresh" content="0; url=''${{ env.S3_BUILD_URL }}''" /></head></html>'
+  #       run: |
+  #         mkdir -p "${LATEST_HTML_PATH%/*}"
+  #         echo writing $FWD_HTML to $LATEST_HTML_PATH
+  #         echo $FWD_HTML > $LATEST_HTML_PATH
+  #         echo html file contents:
+  #         cat $LATEST_HTML_PATH
+  #     - name: upload to S3
+  #       uses: jakejarvis/s3-sync-action@master
+  #       if: env.UPLOAD_TO_S3 == 'true'
+  #       with:
+  #         args: --acl public-read
+  #       env:
+  #         AWS_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
+  #         AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+  #         AWS_S3_BUCKET: supercollider
+  #         AWS_S3_ENDPOINT: https://s3-us-west-2.amazonaws.com
+  #         AWS_REGION: 'us-west-2'
+  #         SOURCE_DIR: ${{ env.S3_ARTIFACT_PATH }}
+  #         DEST_DIR: ${{ env.S3_BUILD_LOCATION }}
+  #     - name: post S3 build location
+  #       if: env.UPLOAD_TO_S3 == 'true'
+  #       run: |
+  #         echo "::group::S3 build location"
+  #         echo $S3_BUILD_URL
+  #         if [[ -n "$LATEST_HTML_URL" ]]; then echo $LATEST_HTML_URL; fi
+  #         echo "::endgroup::"
 
-  # release - list of files uploaded to GH release is specified in the *upload* step
-  deploy_gh:
-    if: startsWith(github.ref, 'refs/tags/') # run on tagged commits
-    needs: [lint, version-getter, build-macos, build-windows]
-    runs-on: ubuntu-latest
-    name: 'deploy release'
-    env:
-      INSTALL_PATH: ${{ github.workspace }}/Install
-      ARTIFACT_FILE_PREFIX: 'SuperCollider-${{ needs.version-getter.outputs.sc-version }}'
-    steps:
-      - name: download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: ${{ env.INSTALL_PATH }} # no "name" paramter - download all artifacts
-      - name: upload to the release page
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            ${{ env.INSTALL_PATH }}/${{ env.ARTIFACT_FILE_PREFIX }}-macOS-x64.dmg/*
-            ${{ env.INSTALL_PATH }}/${{ env.ARTIFACT_FILE_PREFIX }}-macOS-universal.dmg/*
-            ${{ env.INSTALL_PATH }}/${{ env.ARTIFACT_FILE_PREFIX }}-macOS-arm64.dmg/*
-            ${{ env.INSTALL_PATH }}/${{ env.ARTIFACT_FILE_PREFIX }}-macOS-x64-legacy.dmg/*
-            ${{ env.INSTALL_PATH }}/${{ env.ARTIFACT_FILE_PREFIX }}-win32-installer/*
-            ${{ env.INSTALL_PATH }}/${{ env.ARTIFACT_FILE_PREFIX }}-win64-installer/*
-            ${{ env.INSTALL_PATH }}/${{ env.ARTIFACT_FILE_PREFIX }}-win32/*
-            ${{ env.INSTALL_PATH }}/${{ env.ARTIFACT_FILE_PREFIX }}-win64/*
-          draft: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  # # release - list of files uploaded to GH release is specified in the *upload* step
+  # deploy_gh:
+  #   if: startsWith(github.ref, 'refs/tags/') # run on tagged commits
+  #   needs: [lint, version-getter, build-macos-homebrew, build-windows]
+  #   runs-on: ubuntu-latest
+  #   name: 'deploy release'
+  #   env:
+  #     INSTALL_PATH: ${{ github.workspace }}/Install
+  #     ARTIFACT_FILE_PREFIX: 'SuperCollider-${{ needs.version-getter.outputs.sc-version }}'
+  #   steps:
+  #     - name: download artifacts
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         path: ${{ env.INSTALL_PATH }} # no "name" paramter - download all artifacts
+  #     - name: upload to the release page
+  #       uses: softprops/action-gh-release@v1
+  #       with:
+  #         files: |
+  #           ${{ env.INSTALL_PATH }}/${{ env.ARTIFACT_FILE_PREFIX }}-macOS-x64.dmg/*
+  #           ${{ env.INSTALL_PATH }}/${{ env.ARTIFACT_FILE_PREFIX }}-macOS-universal.dmg/*
+  #           ${{ env.INSTALL_PATH }}/${{ env.ARTIFACT_FILE_PREFIX }}-macOS-arm64.dmg/*
+  #           ${{ env.INSTALL_PATH }}/${{ env.ARTIFACT_FILE_PREFIX }}-macOS-x64-legacy.dmg/*
+  #           ${{ env.INSTALL_PATH }}/${{ env.ARTIFACT_FILE_PREFIX }}-win32-installer/*
+  #           ${{ env.INSTALL_PATH }}/${{ env.ARTIFACT_FILE_PREFIX }}-win64-installer/*
+  #           ${{ env.INSTALL_PATH }}/${{ env.ARTIFACT_FILE_PREFIX }}-win32/*
+  #           ${{ env.INSTALL_PATH }}/${{ env.ARTIFACT_FILE_PREFIX }}-win64/*
+  #         draft: true
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

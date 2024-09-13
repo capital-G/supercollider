@@ -1,0 +1,6 @@
+ports:
+  - name: portaudio
+  - name: libsndfile
+  - name: readline
+  - name: fftw-3
+  - name: qt5

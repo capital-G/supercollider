@@ -1,0 +1,24 @@
+name: Build Mac OS MacPorts
+on:
+  workflow_call:
+    inputs:
+      sc-version:
+        required: true
+        type: string
+
+jobs:
+  build-macos-macports:
+    runs-on: macos-14
+    name: macOS MacPorts build
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: melusina-org/setup-macports@v1
+        name: Setup dependencies via macPorts
+        with:
+          parameters: ".github/macports-config.yml"
+
+      - name: build
+        run: cmake --build ${{ github.workspace }}/build --config Release --target install
