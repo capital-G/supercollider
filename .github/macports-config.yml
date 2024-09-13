@@ -4,3 +4,4 @@ ports:
   - name: readline
   - name: fftw-3
   - name: qt5
+  - name: qt5-qtwebengine
