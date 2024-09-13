@@ -21,15 +21,7 @@ jobs:
         name: Setup dependencies via macPorts
       
       - name: Install dependencies
-        run:
-          port install \
-            portaudio \
-            libsndfile \
-            readline \
-            fftw-3 \
-            qt5 \
-            qt5-qtwebengine \
-            qt5-qttools
+        run: port install portaudio libsndfile readline fftw-3 qt5 qt5-qtwebengine qt5-qttools
 
       - name: configure
         run: |
