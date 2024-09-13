@@ -25,6 +25,8 @@ jobs:
       - name: configure
         run: |
           mkdir $BUILD_PATH && cd $BUILD_PATH
+          # add macdeployqt to PATH
+          export PATH="/opt/local/libexec/qt5/bin:$PATH"
           cmake -G"Xcode" -DSUPERNOVA=ON ..
 
       - name: build
