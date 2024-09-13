@@ -10,6 +10,8 @@ jobs:
   build-macos-macports:
     runs-on: macos-14
     name: macOS MacPorts build
+    env:
+      BUILD_PATH: ${{ github.workspace }}/build
     steps:
       - uses: actions/checkout@v4
         with:
@@ -19,6 +21,11 @@ jobs:
         name: Setup dependencies via macPorts
         with:
           parameters: ".github/macports-config.yml"
+      
+      - name: configure
+        run: |
+          mkdir $BUILD_PATH && cd $BUILD_PATH
+          cmake -G"Xcode" -DSUPERNOVA=ON ..
 
       - name: build
-        run: cmake --build ${{ github.workspace }}/build --config Release --target install
+        run: cmake --build $BUILD_PATH --config Release --target install
