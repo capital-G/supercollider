@@ -5,3 +5,4 @@ ports:
   - name: fftw-3
   - name: qt5
   - name: qt5-qtwebengine
+  - name: qt5-qtmacextras
