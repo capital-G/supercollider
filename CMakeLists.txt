@@ -322,7 +322,7 @@ if(SYSTEM_BOOST)
     # Boost >= 1.71 ships with its own Boost config file, we ignore it for now.
     set(Boost_NO_BOOST_CMAKE ON)
     set(Boost_USE_MULTITHREADED ON)
-    find_package( Boost 1.50.0 COMPONENTS  thread system filesystem program_options regex test_exec_monitor )
+    find_package( Boost 1.80.0 COMPONENTS  thread system filesystem program_options regex test_exec_monitor )
     if (Boost_FOUND)
         # we're specifically setting up the boost libraries here, so we can
         # name them
@@ -332,9 +332,6 @@ if(SYSTEM_BOOST)
         add_library(boost_system_lib SHARED IMPORTED)
         set_property(TARGET boost_system_lib PROPERTY IMPORTED_LOCATION
           ${Boost_SYSTEM_LIBRARY})
-        add_library(boost_filesystem_lib SHARED IMPORTED)
-        set_property(TARGET boost_filesystem_lib PROPERTY IMPORTED_LOCATION
-          ${Boost_FILESYSTEM_LIBRARY})
         add_library(boost_program_options_lib SHARED IMPORTED)
         set_property(TARGET boost_program_options_lib PROPERTY
           IMPORTED_LOCATION ${Boost_PROGRAM_OPTIONS_LIBRARY})
