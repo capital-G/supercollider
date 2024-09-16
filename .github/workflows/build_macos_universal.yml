@@ -1,0 +1,111 @@
+name: Build MacOS universal
+on:
+  workflow_call:
+    inputs:
+      sc-version:
+        required: true
+        type: string
+
+jobs:
+  build-macos-universal:
+    runs-on: macos-12
+    name: macOS universal
+    env:
+      # bump the number to invalidate the cache
+      CACHE_KEY: macos-universal-1
+      BUILD_PATH: ${{ github.workspace }}/build
+      INSTALL_PATH: ${{ github.workspace }}/build/Install
+      HOMEBREW_NO_ANALYTICS: 1
+      HOMEBREW_NO_ENV_HINTS: 1
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      HOMEBREW_NO_INSTALL_CLEANUP: 1
+      ARTIFACT_FILE: "SuperCollider-${{ inputs.sc-version }}-macOS-universal.dmg"
+      DEVELOPER_DIR: "/Applications/Xcode_13.4.1.app/Contents/Developer"
+      MACOSX_DEPLOYMENT_TARGET: "10.15"
+      CMAKE_OSX_ARCHITECTURES: "x86_64;arm64"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: prepare timestamp for cache
+        id: current-date
+        run: |
+          echo "stamp=$(date '+%Y-%m-%d')" >> $GITHUB_OUTPUT
+          echo "week=$(date '+%U')" >> $GITHUB_OUTPUT
+
+      - name: cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/ccache
+          key: ${{ env.CACHE_KEY }}-ccache${{ steps.current-date.outputs.week }}
+          restore-keys: ${{ env.CACHE_KEY }}-ccache
+      
+      - name: cleanup homebrew downloads
+        # always remove existing downloads first, as we bring back relevant downloads from cache
+        run: rm -rf $(brew --cache)
+
+      - name: cache homebrew downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/Homebrew/downloads
+          key: ${{ env.CACHE_KEY }}-homebrew-${{ steps.current-date.outputs.week }}
+          restore-keys: ${{ env.CACHE_KEY }}-homebrew-
+
+      - name: cache homebrew universal packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/brew-universal
+          # don't use homebrew-universal as key as this will clash with homebrew- cache
+          key: ${{ env.CACHE_KEY }}-brew_universal-${{ steps.current-date.outputs.week }}
+          restore-keys: ${{ env.CACHE_KEY }}-brew_universal-
+
+      - name: install brew dependencies
+        run: |
+          brew install ccache
+          # add ccamke to PATH - see https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-commands-for-github-actions
+          echo "/usr/local/opt/ccache/libexec" >> $GITHUB_PATH
+      
+      - name: install brew universal dependencies
+        run: |
+          echo "Downloading script for creating universal binaries from homebrew packages"
+          curl --no-progress-meter -O -J -L https://gist.githubusercontent.com/dyfer/6c83905d4593750105897e51e87ec345/raw/98e073d755cc3ca8426e20c30f51e9bac2bc9858/brew-install-universal.sh
+          chmod +x brew-install-universal.sh
+          ./brew-install-universal.sh \
+            libsndfile \
+            readline \
+            fftw \
+            portaudio \
+            qt@5
+
+      - name: configure
+        run: |
+          mkdir $BUILD_PATH && cd $BUILD_PATH
+          cmake \
+            -G"Xcode" \
+            -DRULE_LAUNCH_COMPILE=ccache \
+            -DSUPERNOVA=ON \
+            -DSC_VERIFY_APP=ON \
+            -DCMAKE_PREFIX_PATH=/usr/local/opt/qt@5 \
+            ..
+
+      - name: build
+        run: cmake --build $BUILD_PATH --config Release --target install
+
+      - name: create archive
+        run: |
+          cd $INSTALL_PATH
+          ln -s /Applications SuperCollider/Applications
+          mkdir -p SuperCollider/.background
+          cp ../../package/background_2_arrow.png SuperCollider/.background/background_2_arrow.png
+          cp ../../package/ds_store SuperCollider/.DS_Store
+          # the following assumes that we end up with the build in the folder SuperCollider
+          # hdiutil sometimes fails with "create failed - Resource busy"
+          # when that happens, we run it again
+          hdiutil create -srcfolder SuperCollider -format UDZO -fs HFS+ $ARTIFACT_FILE || hdiutil create -srcfolder SuperCollider -format UDZO -fs HFS+ $ARTIFACT_FILE
+
+      - name: upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_FILE }}
+          path: ${{ env.INSTALL_PATH }}/${{ env.ARTIFACT_FILE }}
