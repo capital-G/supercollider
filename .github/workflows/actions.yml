@@ -62,9 +62,30 @@ jobs:
       sc-version: ${{ needs.version-getter.outputs.sc-version }}
     secrets: inherit
 
-  build-macos:
+  build-macos-universal:
     needs: [lint, version-getter]
-    uses: ./.github/workflows/build_macos.yml
+    uses: ./.github/workflows/build_macos_universal.yml
+    with:
+      sc-version: ${{ needs.version-getter.outputs.sc-version }}
+    secrets: inherit
+
+  build-macos_x64_shared-libscsynth:
+    needs: [lint, version-getter]
+    uses: ./.github/workflows/build_macos_x64_shared-libscsynth.yml
+    with:
+      sc-version: ${{ needs.version-getter.outputs.sc-version }}
+    secrets: inherit
+
+  build-macos-x64-use-system-libraries:
+    needs: [lint, version-getter]
+    uses: ./.github/workflows/build_macos_x64_use-system-libraries.yml
+    with:
+      sc-version: ${{ needs.version-getter.outputs.sc-version }}
+    secrets: inherit
+
+  build-macos-x64-legacy:
+    needs: [lint, version-getter]
+    uses: ./.github/workflows/build_macos_x64_legacy.yml
     with:
       sc-version: ${{ needs.version-getter.outputs.sc-version }}
     secrets: inherit
