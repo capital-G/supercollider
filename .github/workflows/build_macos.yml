@@ -20,6 +20,10 @@ jobs:
 
     name: macOS ${{ matrix.filename }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
       # uses can't reference matrix variables, so we use
       # a static if condition check
       - name: Start macOS universal build
