@@ -38,3 +38,6 @@ __pycache__
 
 # vs code files
 .vscode
+
+# doxygen output
+xml/

@@ -1,0 +1,4 @@
+QtCollider
+==========
+
+Something...
