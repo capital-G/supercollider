@@ -67,7 +67,7 @@ bool gUseDoubles = false;
 
 InternalSynthServerGlobals gInternalSynthServer = { nullptr, kNumDefaultSharedControls, gDefaultSharedControls };
 
-std::unique_ptr<InPort::UDP> gUDPport {};
+std::shared_ptr<InPort::UDP> gUDPport {};
 
 PyrString* newPyrString(VMGlobals* g, char* s, int flags, bool runGC);
 
@@ -864,7 +864,7 @@ void init_OSC(int port) {
     startAsioThread();
 
     try {
-        gUDPport.reset(new InPort::UDP(port, HandlerType::OSC));
+        gUDPport = std::make_shared<InPort::UDP>(port, HandlerType::OSC);
     } catch (std::exception const& e) { postfl("No networking: %s", e.what()); }
 }
 

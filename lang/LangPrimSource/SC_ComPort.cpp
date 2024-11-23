@@ -234,10 +234,11 @@ void UDP::initHandler(HandlerType handlerType) {
 }
 
 void UDP::startReceiveUDP() {
-    using namespace boost;
+    // sustain a reference to self in the callback
+    auto self = shared_from_this();
     mUdpSocket.async_receive_from(
-        asio::buffer(mRecvBuffer), mRemoteEndpoint,
-        [this](auto error, auto bytesTransferred) { handleReceivedUDP(error, bytesTransferred); });
+        boost::asio::buffer(mRecvBuffer), mRemoteEndpoint,
+        [self](auto error, auto bytes_transferred) { self->handleReceivedUDP(error, bytes_transferred); });
 }
 
 void UDP::handleReceivedUDP(const boost::system::error_code& error, std::size_t bytesTransferred) {

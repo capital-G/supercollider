@@ -66,10 +66,14 @@ private:
 
 namespace InPort {
 
-class UDP : private boost::noncopyable {
+class UDP : private std::enable_shared_from_this<UDP> {
 public:
     UDP(int inPortNum, HandlerType, int portsToCheck = 10);
-    ~UDP() = default;
+    ~UDP() {
+        boost::system::error_code error;
+        mUdpSocket.cancel(error);
+        mUdpSocket.close(error);
+    };
 
     auto RealPortNum() const { return mPortNum; }
     auto& getSocket() { return mUdpSocket; }
