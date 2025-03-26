@@ -16,8 +16,12 @@ if(File.exists(~testProto).not) {
 	Error("Test prototype file doesn't exist at %".format(~testProto)).throw
 };
 
+// avoid excessive positional arguments, so instead use env vars
+~numRetriesOnFailure = ("SCLANG_TEST_NUM_RETRIES_ON_FAILURE".getenv ? "5").asInteger;
+
 "~testProto path: %".format(~testProto).postln;
 "~testResult path: %".format(~testResult).postln;
+"~numRetriesOnFailure: %".format(~numRetriesOnFailure).postln;
 
 ~verboseSetup = false; // true or false
 
@@ -163,7 +167,6 @@ if(File.exists(~testProto).not) {
 		if (test[\completed].isNil) {
 			if (test[\skip] == true) {
 				test[\completed] = true;
-				test[\attemptsRemaining] = nil;
 				~writeResult.(tests, resultFile);
 			} {
 				test[\completed] = false;
@@ -179,41 +182,48 @@ if(File.exists(~testProto).not) {
 
 					script = class.findTestMethods().detect({ |m| m.name == testname });
 					if (script.notNil) {
-						// This is a bad way to get the results, but there's no other for now.
-						// One this is working end-to-end, then UnitTest can be improved incrementally.
-						oldPasses = IdentitySet.newFrom(class.passes);
-						oldFailures = IdentitySet.newFrom(class.failures);
+						var numTries = 0;
+						var testSuccess = false;
 
 						// RUN THE TEST ///////////////
 						~writeResult.(tests, resultFile);
 						startTime = Date.localtime();
 
-						try {
-							result = class.new.runTestMethod(script);
-						} { |error|
-							class.new.failed(script, error.errorString, true, nil);
-						};
+						while {(numTries < ~numRetriesOnFailure).or(testSuccess.not)} {
+							class.reset; // reset failures and passes on the unit test class
+							numTries = numTries + 1;
+							if(numTries>1, {
+								// try to back off between retries
+								1.0.wait;
+								"Re-trying test % due to failure: %/%".format(testname, numTries, ~numRetriesOnFailure).warn;
+							});
+							try {
+								result = class.new.runTestMethod(script);
+							} { |error|
+								class.new.failed(script, error.errorString, true, nil);
+							};
+							testSuccess = IdentitySet.newFrom(class.passes).difference(~oldPasses).size > 0;
+						}
 
 						endTime = Date.localtime();
 						test[\completed] = true;
-						test[\attemptsRemaining] = nil;
 						test[\duration] = endTime.rawSeconds - startTime.rawSeconds;
 						///////////////////////////////
 
-						newPasses = IdentitySet.newFrom(class.passes).difference(oldPasses);
-						newFailures = IdentitySet.newFrom(class.failures).difference(oldFailures);
 						test[\results] = List();
-						newPasses.do {|pass|
+						class.passes.do {|pass|
 							test[\results].add((
 								\test: ("" ++ pass.message)[0..1000],
 								\pass: true,
+								\numTries, numTries,
 							))
 						};
-						newFailures.do {|fail|
+						class.failures.do {|fail|
 							test[\results].add((
 								\pass: false,
 								\test: ("" ++ fail.message.split($\n)[0])[0..1000],
-								\reason: (fail.message.split($\n)[1..])[0..1000]
+								\reason: (fail.message.split($\n)[1..])[0..1000],
+								\numTries, numTries,
 							))
 						};
 
