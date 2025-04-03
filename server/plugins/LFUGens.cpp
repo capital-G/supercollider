@@ -152,7 +152,7 @@ struct T2A : public Unit {
 };
 
 struct EnvGen : public Unit {
-    double m_a1, m_a2, m_b1, m_y1, m_y2, m_grow, m_level, m_endLevel;
+    double m_a1, m_a2, m_b1, m_y1, m_y2, m_grow, m_level, m_endLevel, m_stageResidual;
     int m_counter, m_stage, m_shape, m_releaseNode;
     float m_prevGate;
     bool m_released;
@@ -2483,7 +2483,6 @@ void EnvGen_next_ak_nova(EnvGen* unit, int inNumSamples);
 #define ENVGEN_NOT_STARTED 1000000000
 
 void EnvGen_Ctor(EnvGen* unit) {
-    // Print("EnvGen_Ctor A\n");
     if (unit->mCalcRate == calc_FullRate) {
         if (INRATE(0) == calc_FullRate) {
             SETCALC(EnvGen_next_aa);
@@ -2503,13 +2502,17 @@ void EnvGen_Ctor(EnvGen* unit) {
     // level0, numstages, releaseNode, loopNode,
     // [level, dur, shape, curve]
 
-    unit->m_endLevel = unit->m_level = ZIN0(kEnvGen_initLevel) * ZIN0(kEnvGen_levelScale) + ZIN0(kEnvGen_levelBias);
+    double initLevel;
+    int initReleaseNode;
+    unit->m_endLevel = unit->m_level = initLevel =
+        ZIN0(kEnvGen_initLevel) * ZIN0(kEnvGen_levelScale) + ZIN0(kEnvGen_levelBias);
     unit->m_counter = 0;
     unit->m_stage = ENVGEN_NOT_STARTED;
     unit->m_shape = shape_Hold;
     unit->m_prevGate = 0.f;
     unit->m_released = false;
-    unit->m_releaseNode = (int)ZIN0(kEnvGen_releaseNode);
+    unit->m_releaseNode = initReleaseNode = (int)ZIN0(kEnvGen_releaseNode);
+    unit->m_stageResidual = 0.0;
 
     float** envPtr = unit->mInBuf + kEnvGen_nodeOffset;
     const int initialShape = (int32)*envPtr[2];
@@ -2517,6 +2520,18 @@ void EnvGen_Ctor(EnvGen* unit) {
         unit->m_level = *envPtr[0]; // we start at the end level;
 
     EnvGen_next_k(unit, 1);
+
+    // restore initial conditions
+    unit->m_endLevel = unit->m_level = initLevel;
+    unit->m_counter = unit->m_counter + 1; // roll back the decrement in next_k
+    unit->m_stage = ENVGEN_NOT_STARTED;
+    unit->m_shape = shape_Hold;
+    unit->m_prevGate = 0.f;
+    unit->m_released = false;
+    unit->m_releaseNode = initReleaseNode;
+    unit->m_stageResidual = 0.0;
+    if (initialShape == shape_Hold)
+        unit->m_level = *envPtr[0]; // we start at the end level;
 }
 
 // called by nextSegment and check_gate:
@@ -2524,9 +2539,6 @@ void EnvGen_Ctor(EnvGen* unit) {
 // - level: current envelope value
 // - dur: if supplied and >= 0, stretch segment to last dur seconds (used in forced release)
 static bool EnvGen_initSegment(EnvGen* unit, int& counter, double& level, double dur = -1) {
-    // Print("stage %d\n", unit->m_stage);
-    // Print("initSegment\n");
-    // out = unit->m_level;
     int stageOffset = (unit->m_stage << 2) + kEnvGen_nodeOffset;
 
     if (stageOffset + 4 > unit->mNumInputs) {
@@ -2548,13 +2560,16 @@ static bool EnvGen_initSegment(EnvGen* unit, int& counter, double& level, double
     double curve = *envPtr[3];
     unit->m_endLevel = endLevel;
 
-    counter = (int32)(dur * SAMPLERATE);
-    counter = sc_max(1, counter);
-    // Print("counter %d stageOffset %d   level %g   endLevel %g   dur %g   shape %d   curve %g\n", counter,
-    // stageOffset, level, endLevel, dur, unit->m_shape, curve); Print("SAMPLERATE %g\n", SAMPLERATE);
+    // Carry the residual stage duration forward to the next stage
+    double stageDurInSamples = dur * SAMPLERATE + unit->m_stageResidual;
+    int32 stageDurInSamples_floor = static_cast<int32>(stageDurInSamples);
+    double counter_fractional = sc_max(1.0, stageDurInSamples);
+    counter = sc_max(1, stageDurInSamples_floor);
+    unit->m_stageResidual = stageDurInSamples - counter;
+
     if (counter == 1)
         unit->m_shape = 1; // shape_Linear
-    // Print("new counter = %d  shape = %d\n", counter, unit->m_shape);
+
     switch (unit->m_shape) {
     case shape_Step: {
         level = endLevel;
@@ -2563,14 +2578,13 @@ static bool EnvGen_initSegment(EnvGen* unit, int& counter, double& level, double
         level = previousEndLevel;
     } break;
     case shape_Linear: {
-        unit->m_grow = (endLevel - level) / counter;
-        // Print("grow %g\n", unit->m_grow);
+        unit->m_grow = (endLevel - level) / counter_fractional;
     } break;
     case shape_Exponential: {
-        unit->m_grow = pow(endLevel / level, 1.0 / counter);
+        unit->m_grow = pow(endLevel / level, 1.0 / counter_fractional);
     } break;
     case shape_Sine: {
-        double w = pi / counter;
+        double w = pi / counter_fractional;
 
         unit->m_a2 = (endLevel + level) * 0.5;
         unit->m_b1 = 2. * cos(w);
@@ -2579,7 +2593,7 @@ static bool EnvGen_initSegment(EnvGen* unit, int& counter, double& level, double
         level = unit->m_a2 - unit->m_y1;
     } break;
     case shape_Welch: {
-        double w = (pi * 0.5) / counter;
+        double w = (pi * 0.5) / counter_fractional;
 
         unit->m_b1 = 2. * cos(w);
 
@@ -2597,23 +2611,23 @@ static bool EnvGen_initSegment(EnvGen* unit, int& counter, double& level, double
     case shape_Curve: {
         if (fabs(curve) < 0.001) {
             unit->m_shape = 1; // shape_Linear
-            unit->m_grow = (endLevel - level) / counter;
+            unit->m_grow = (endLevel - level) / counter_fractional;
         } else {
             double a1 = (endLevel - level) / (1.0 - exp(curve));
             unit->m_a2 = level + a1;
             unit->m_b1 = a1;
-            unit->m_grow = exp(curve / counter);
+            unit->m_grow = exp(curve / counter_fractional);
         }
     } break;
     case shape_Squared: {
         unit->m_y1 = sqrt(level);
         unit->m_y2 = sqrt(endLevel);
-        unit->m_grow = (unit->m_y2 - unit->m_y1) / counter;
+        unit->m_grow = (unit->m_y2 - unit->m_y1) / counter_fractional;
     } break;
     case shape_Cubed: {
-        unit->m_y1 = pow(level, 1.0 / 3.0); // 0.33333333);
+        unit->m_y1 = pow(level, 1.0 / 3.0);
         unit->m_y2 = pow(endLevel, 1.0 / 3.0);
-        unit->m_grow = (unit->m_y2 - unit->m_y1) / counter;
+        unit->m_grow = (unit->m_y2 - unit->m_y1) / counter_fractional;
     } break;
     };
     return true;
@@ -2625,6 +2639,7 @@ static bool check_gate(EnvGen* unit, float prevGate, float gate, int& counter, d
         unit->m_released = false;
         unit->mDone = false;
         counter = counterOffset;
+        unit->m_stageResidual = 0.0;
         return false;
     } else if (gate <= -1.f && prevGate > -1.f) {
         // forced release: jump to last segment overriding its duration
@@ -2634,11 +2649,13 @@ static bool check_gate(EnvGen* unit, float prevGate, float gate, int& counter, d
         unit->m_stage = static_cast<int>(ZIN0(kEnvGen_numStages) - 1);
         unit->m_released = true;
         EnvGen_initSegment(unit, counter, level, dur);
+        unit->m_stageResidual = 0.0;
         return false;
     } else if (prevGate > 0.f && gate <= 0.f && unit->m_releaseNode >= 0 && !unit->m_released) {
         counter = counterOffset;
         unit->m_stage = unit->m_releaseNode - 1;
         unit->m_released = true;
+        unit->m_stageResidual = 0.0;
         return false;
     }
     return true;
@@ -2657,15 +2674,12 @@ static inline bool check_gate_ar(EnvGen* unit, int i, float& prevGate, float*& g
 }
 
 static inline bool EnvGen_nextSegment(EnvGen* unit, int& counter, double& level) {
-    // Print("stage %d rel %d\n", unit->m_stage, (int)ZIN0(kEnvGen_releaseNode));
     int numstages = (int)ZIN0(kEnvGen_numStages);
 
-    // Print("stage %d   numstages %d\n", unit->m_stage, numstages);
-    if (unit->m_stage + 1 >= numstages) { // num stages
-        // Print("stage+1 > num stages\n");
+    if (unit->m_stage + 1 >= numstages) { // last stage completed
+        // don't update level yet, the current level hasn't been written out by `perform` yet
         counter = INT_MAX;
         unit->m_shape = 0;
-        level = unit->m_endLevel;
         unit->mDone = true;
         int doneAction = (int)ZIN0(kEnvGen_doneAction);
         DoneAction(doneAction, unit);
@@ -2682,7 +2696,6 @@ static inline bool EnvGen_nextSegment(EnvGen* unit, int& counter, double& level)
             unit->m_shape = shape_Sustain;
             level = unit->m_endLevel;
         }
-        // Print("sustain\n");
     } else {
         unit->m_stage++;
         return EnvGen_initSegment(unit, counter, level);
@@ -2811,7 +2824,6 @@ static inline void EnvGen_perform(EnvGen* unit, float*& out, double& level, int 
 
 void EnvGen_next_k(EnvGen* unit, int inNumSamples) {
     float gate = ZIN0(kEnvGen_gate);
-    // Print("->EnvGen_next_k gate %g\n", gate);
     int counter = unit->m_counter;
     double level = unit->m_level;
 
@@ -2831,7 +2843,9 @@ void EnvGen_next_k(EnvGen* unit, int inNumSamples) {
     float* out = ZOUT(0);
     EnvGen_perform(unit, out, level, 1);
 
-    // Print("x %d %d %d %g\n", unit->m_stage, counter, unit->m_shape, *out);
+    if (unit->mDone)
+        level = unit->m_endLevel;
+
     unit->m_level = level;
     unit->m_counter = counter - 1;
 }
@@ -2851,6 +2865,14 @@ void EnvGen_next_ak(EnvGen* unit, int inNumSamples) {
             bool success = EnvGen_nextSegment(unit, counter, level);
             if (!success)
                 return;
+            if (unit->mDone) {
+                // We've reached the end of the last stage,
+                // write out the previously-advanced level value
+                EnvGen_perform(unit, out, level, 1);
+                // and advance to the end level for samples thereafter
+                level = unit->m_endLevel;
+                remain -= 1;
+            }
         }
 
         int nsmps = sc_min(remain, counter);
@@ -2859,7 +2881,7 @@ void EnvGen_next_ak(EnvGen* unit, int inNumSamples) {
         remain -= nsmps;
         counter -= nsmps;
     }
-    // Print("x %d %d %d %g\n", unit->m_stage, counter, unit->m_shape, ZOUT0(0));
+
     unit->m_level = level;
     unit->m_counter = counter;
 }
@@ -2906,6 +2928,14 @@ FLATTEN void EnvGen_next_ak_nova(EnvGen* unit, int inNumSamples) {
             bool success = EnvGen_nextSegment(unit, counter, level);
             if (!success)
                 return;
+            if (unit->mDone) {
+                // We've reached the end of the last stage,
+                // write out the previously-advanced level value
+                EnvGen_perform(unit, out, level, 1);
+                // and advance to the end level for samples thereafter
+                level = unit->m_endLevel;
+                remain -= 1;
+            }
         }
 
         int nsmps = sc_min(remain, counter);
@@ -2914,7 +2944,7 @@ FLATTEN void EnvGen_next_ak_nova(EnvGen* unit, int inNumSamples) {
         remain -= nsmps;
         counter -= nsmps;
     }
-    // Print("x %d %d %d %g\n", unit->m_stage, counter, unit->m_shape, ZOUT0(0));
+
     unit->m_level = level;
     unit->m_counter = counter;
 }

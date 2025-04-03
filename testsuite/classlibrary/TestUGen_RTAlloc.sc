@@ -1,15 +1,13 @@
 TestUGen_RTAlloc : UnitTest {
 
-	classvar server;
+	var server;
 
 	*initClass {
 		passVerbosity = UnitTest.brief;
 	}
 
-	*setUpClass {
-		server = Server(this.name);
-		server.options.sampleRate = 48000;
-		server.options.blockSize = 64;
+	setUp {
+		server = Server(this.class.name);
 		server.options.memSize = 2 ** 13; // scsynth default
 		// - tests fail with memSize < 256 (GVerb fails)
 		// - testing with memSize >= 2 ** 20 would require multiple allocations
@@ -17,8 +15,9 @@ TestUGen_RTAlloc : UnitTest {
 		server.bootSync;
 	}
 
-	*tearDownClass {
-		server.quit.remove;
+	tearDown {
+		server.quit;
+		server.remove;
 	}
 
 	// Async helpers
