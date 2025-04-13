@@ -136,6 +136,13 @@ jobs:
           # add ccache to PATH
           echo "`brew --prefix ccache`/libexec" >> $GITHUB_PATH
 
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '4.0'
+      - name: Use cmake
+        run: cmake --version
+
       - name: setup vcpkg # vcpkg is not automatically installed in newer macOS runner images
         if: matrix.vcpkg-packages && matrix.vcpkg-triplet
         run: |
