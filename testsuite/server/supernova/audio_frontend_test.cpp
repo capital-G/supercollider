@@ -1,5 +1,6 @@
 #include <boost/test/unit_test.hpp>
-#include <boost/thread.hpp>
+#include <chrono>
+#include <thread>
 
 #define protected public
 
@@ -47,10 +48,10 @@ BOOST_AUTO_TEST_CASE(frontend_test_2) {
     BOOST_REQUIRE(af.audio_is_ready());
     BOOST_REQUIRE(af.audio_is_active());
 
-    boost::xtime xt;
-    boost::xtime_get(&xt, boost::TIME_UTC);
-    xt.sec += 1;
-    boost::thread::sleep(xt);
+    auto now = std::chrono::high_resolution_clock::now();
+    auto future_time = now + std::chrono::milliseconds(1000);
+
+    std::this_thread::sleep_until(future_time);
 
     af.deactivate_audio();
 

@@ -1,6 +1,8 @@
 #define BOOST_TEST_MAIN
 #include <boost/test/included/unit_test.hpp>
-#include <boost/thread.hpp>
+
+#include <chrono>
+#include <thread>
 
 #define protected public
 
@@ -27,12 +29,10 @@ template <typename backend> void test_backend(void) {
     be.activate();
     BOOST_REQUIRE(be.is_active());
 
-    boost::xtime xt;
-    boost::xtime_get(&xt, boost::TIME_UTC);
-    xt.sec += 1;
+    auto now = std::chrono::high_resolution_clock::now();
+    auto future_time = now + std::chrono::milliseconds(1000);
 
-    boost::thread::sleep(xt);
-
+    std::this_thread::sleep_until(future_time);
 
     be.deactivate();
     BOOST_REQUIRE(!be.is_active());
