@@ -32,6 +32,7 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <algorithm>
 
 #ifndef DEBUG_HARDWARE_TOPOLOGY
 #    define DEBUG_HARDWARE_TOPOLOGY 0
