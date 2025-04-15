@@ -41,6 +41,7 @@
 
 #include <future>
 #include <thread>
+#include <functional>
 
 #if 0 // not yet
 #    include <parallel/algorithm>
