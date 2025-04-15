@@ -26,8 +26,6 @@ extern "C" {
 #include <cstring>
 #include <array>
 
-#include <boost/thread/tss.hpp>
-
 #include "branch_hints.hpp"
 
 namespace nova {
@@ -114,8 +112,7 @@ public:
 
     size_type max_size() const throw() { return bytes; }
 
-    typedef boost::thread_specific_ptr<pool_t> pool_ptr;
-    static pool_ptr pool;
+    thread_local pool_t* pool = nullptr;
 };
 
 template <std::size_t bytes> typename tl_allocator<bytes>::pool_ptr tl_allocator<bytes>::pool;
