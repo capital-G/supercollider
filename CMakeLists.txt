@@ -322,9 +322,6 @@ if(SYSTEM_BOOST)
     if (Boost_FOUND)
         # we're specifically setting up the boost libraries here, so we can
         # name them
-        add_library(boost_thread_lib SHARED IMPORTED)
-        set_property(TARGET boost_thread_lib PROPERTY IMPORTED_LOCATION
-          ${Boost_THREAD_LIBRARY})
         add_library(boost_system_lib SHARED IMPORTED)
         set_property(TARGET boost_system_lib PROPERTY IMPORTED_LOCATION
           ${Boost_SYSTEM_LIBRARY})

@@ -13,16 +13,6 @@ endif()
 
 if(NOT SYSTEM_BOOST) # we compile boost ourselves
 	message(STATUS "Using bundled boost")
-	# boost thread
-	aux_source_directory(boost/libs/thread/src/ boost_thread_src )
-
-	if(WIN32)
-		aux_source_directory(boost/libs/thread/src/win32/ boost_thread_platform )
-	elseif(PTHREADS_FOUND)
-		aux_source_directory(boost/libs/thread/src/pthread/ boost_thread_platform )
-	else()
-		message(SEND_ERROR "we need to implement boost_thread")
-	endif()
 
 	aux_source_directory(boost/libs/system/src/ boost_system_src )
 	add_library(boost_system_lib STATIC EXCLUDE_FROM_ALL ${boost_system_src})
@@ -37,36 +27,8 @@ if(NOT SYSTEM_BOOST) # we compile boost ourselves
 	add_library(boost_regex_lib STATIC EXCLUDE_FROM_ALL ${boost_regex_src})
 	target_include_directories(boost_regex_lib PUBLIC boost)
 
-	add_library(boost_thread_lib STATIC EXCLUDE_FROM_ALL ${boost_thread_src} ${boost_thread_platform})
-	target_link_libraries(boost_thread_lib boost_system_lib)
-#	target_compile_definitions(boost_thread PUBLIC BOOST_THREAD_DONT_PROVIDE_INTERRUPTIONS)
-	target_include_directories(boost_thread_lib PUBLIC boost)
-	target_compile_definitions(boost_thread_lib PUBLIC BOOST_THREAD_USE_LIB) # for win32
-
-	if(PTHREADS_FOUND)
-		target_include_directories(boost_thread_lib PUBLIC ${PTHREADS_INCLUDE_DIR})
-	endif()
-	if(WIN32)
-		target_compile_definitions( boost_thread_lib PRIVATE BOOST_THREAD_BUILD_LIB)
-	endif()
-
-
-	if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-		target_compile_options(boost_thread_lib PRIVATE -fPIC)
-		target_link_libraries(boost_thread_lib rt)
-	endif()
-
-	if(LTO)
-    set_property(TARGET boost_thread_lib
-			APPEND PROPERTY COMPILE_FLAGS "-flto -flto-report")
-
-		set_property(TARGET boost_thread_lib
-			APPEND PROPERTY LINK_FLAGS "-flto -flto-report")
-	endif()
-
 	set_property( TARGET
         boost_regex_lib
-        boost_thread_lib
         boost_program_options_lib
         boost_system_lib
         PROPERTY FOLDER 3rdparty
