@@ -17,8 +17,8 @@ bcp --boost=${BOOST_ROOT} \
 	--scan QtCollider/*pp \
 	--scan QtCollider/*/*pp \
 	--scan QtCollider/*/*/*pp \
-	--scan external_libraries/boost_sync/*/*/*/*pp \
-	--scan external_libraries/boost_sync/*/*/*/*/*pp \
+	--scan external_libraries/boost_sync/include/*/*/*pp \
+	--scan external_libraries/boost_sync/include/*/*/*/*pp \
 	--scan testsuite/server/*pp \
 	--scan testsuite/server/supernova/*pp \
 	--scan testsuite/server/scsynth/*pp \
