@@ -5,7 +5,7 @@ categories:: Math
 description::
 A 64-bit double precision floating point number. Float inherits most of its behaviour from its superclass, link::Classes/SimpleNumber::.
 
-code::
+code:
 // generate 10 random floats between 0 and 1
 { 1.0.rand }.dup(10)
 
