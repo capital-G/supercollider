@@ -116,5 +116,5 @@ File.use(~xmlPath.absolutePath, "w", {|f| f.write(~xmlContent)});
 
 "Finished writing JUnit XML".postln;
 
-if(~isRunningInIDE.not, {0.exit});
+if("ARCHIVE_PATH".getenv.notNil, {0.exit});
 )
