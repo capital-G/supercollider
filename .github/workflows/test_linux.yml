@@ -70,7 +70,7 @@ jobs:
         shell: bash
         continue-on-error: true
         run: |
-          timeout 1m $SCLANG ${{ env.SCRIPT_CREATE_JUNIT_XML }}
+          timeout 3m $SCLANG ${{ env.SCRIPT_CREATE_JUNIT_XML }}
         env:
           ARCHIVE_PATH: ${{ env.TEST_LIST_RESULT }}
           XML_PATH: ${{ env.JUNIT_XML_PATH }}
