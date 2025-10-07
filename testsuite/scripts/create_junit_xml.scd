@@ -108,10 +108,13 @@
 ~archivePath = thisProcess.argv[0] ? "ARCHIVE_PATH".getenv;
 ~xmlPath = thisProcess.argv[1] ? "XML_PATH".getenv;
 
+"Writing JUnit XML of '%'' to '%'".format(~archivePath, ~xmlPath).postln;
+
 ~xmlContent = ~createJunitXML.(~archivePath);
 
-
 File.use(~xmlPath.absolutePath, "w", {|f| f.write(~xmlContent)});
+
+"Finished writing JUnit XML".postln;
 
 if(~isRunningInIDE.not, {0.exit});
 )
