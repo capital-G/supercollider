@@ -108,7 +108,7 @@
 ~archivePath = thisProcess.argv[0] ? "ARCHIVE_PATH".getenv;
 ~xmlPath = thisProcess.argv[1] ? "XML_PATH".getenv;
 
-"Writing JUnit XML of '%'' to '%'".format(~archivePath, ~xmlPath).postln;
+"Writing JUnit XML of '%' to '%'".format(~archivePath, ~xmlPath).postln;
 
 ~xmlContent = ~createJunitXML.(~archivePath);
 
