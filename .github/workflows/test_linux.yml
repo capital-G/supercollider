@@ -82,6 +82,12 @@ jobs:
           files: |
             ${{ env.JUNIT_XML_PATH }}
           comment_mode: changes in failures
+      
+      - name: Upload JUnit XML
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-linux
+          path: ${{ env.JUNIT_XML_PATH }}
           
       - name: Post test results
         shell: bash
