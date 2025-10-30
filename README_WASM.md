@@ -115,6 +115,26 @@ which will write all necessary files to `<you_build_directory>/wasm/scsynth`.
 Technically, what is built is a runtime library `scsynth.js` and the actual binary `scsynth.wasm`.
 The standard plugins (UGens) are statically linked and thus available.
 
+### CLion configuration
+
+In order to make CLion aware of the emscripten toolchain, the following steps can be done:
+
+- [Create a new system toolchain](https://www.jetbrains.com/help/clion/how-to-create-toolchain-in-clion.html#custom-targets-toolchain)
+  which uses the locations of `emcc` as C compiler and `em++` as C++ compiler.
+  The exact locations of these can be obtained by running `which emcc`/`which em++` after the EMSDK environment has been
+  sourced (see above).
+- [Create a new CMake profile](https://www.jetbrains.com/help/clion/cmake-profile.html#add-profile) called e.g.
+  `emscripten` which uses the toolchain created above.
+  Use a different build directory than the default `build` since the emscripten build directory is incompatible
+  with "normal" build environments.
+  Beneath the configuration variables specified above it is necessary to specify a toolchain file. If emsdk is installed
+  under `/Users/scheiba/github/emsdk`, the additional CMake option should look like
+  ```
+  -DCMAKE_TOOLCHAIN_FILE=/Users/scheiba/github/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake
+  ```
+- Select the CMake created profile and build scsynth. The build should succeed and the wasm files should appear under
+  `<your-wasm-build-dir>/wasm/scsynth/`.
+
 ## Example
 
 See the `<your_build_directory>/wasm/scsynth/example` directory for an example how to use the wasm binary within a website.
