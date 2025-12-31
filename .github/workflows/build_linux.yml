@@ -95,6 +95,14 @@ jobs:
             shared-libscsynth: false
             ctest: true
 
+          - job-name: "arm64 with ctest"
+            os-version: "24.04-arm"
+            c-compiler: "clang-18"
+            cxx-compiler: "clang++-18"
+            use-syslibs: false
+            shared-libscsynth: false
+            ctest: true
+
     name: Ubuntu ${{ matrix.os-version }} ${{ matrix.c-compiler }} ${{ matrix.job-name }}
     env:
       BUILD_PATH: ${{ github.workspace }}/build
