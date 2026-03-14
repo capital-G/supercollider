@@ -27,12 +27,14 @@ if(AUDIOAPI STREQUAL "default")
 		set(AUDIOAPI coreaudio)
 	elseif(WIN32)
 		set(AUDIOAPI portaudio)
+	elseif(EMSCRIPTEN)
+		set(AUDIOAPI webaudio)
 	else()
 		set(AUDIOAPI jack)
 	endif(APPLE)
 endif()
 
-if(NOT AUDIOAPI MATCHES "^(jack|coreaudio|portaudio|bela)$")
+if(NOT AUDIOAPI MATCHES "^(jack|coreaudio|portaudio|bela|webaudio)$")
 	message(FATAL_ERROR "Unrecognised audio API: ${AUDIOAPI}")
 endif()
 
@@ -60,7 +62,7 @@ elseif(AUDIOAPI STREQUAL bela)
         # recommended compile flags for beaglebone etc; set here because bela api flag directly implies the architecture
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${BELA_C_FLAGS}")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${BELA_CXX_FLAGS}")
-    endif()
+	endif()
 endif()
 message(STATUS "Audio API (scsynth): ${AUDIOAPI}")
 
@@ -142,6 +144,15 @@ elseif (AUDIOAPI STREQUAL bela)
     list(APPEND scsynth_sources SC_Bela.cpp)
     add_definitions("-DSC_AUDIO_API=SC_AUDIO_API_BELA" "-DSC_BELA" ${XENOMAI_DEFINITIONS} ${BELA_DEFINITIONS})
     include_directories(${XENOMAI_INCLUDE_DIRS} ${BELA_INCLUDE_DIRS})
+elseif (AUDIOAPI STREQUAL webaudio)
+    add_definitions("-DSC_AUDIO_API=SC_AUDIO_API_WEBAUDIO")
+    list(APPEND scsynth_sources
+            SC_WebAudio.cpp
+    )
+    list(REMOVE_ITEM scsynth_sources
+            SC_ComPort.cpp
+            ${CMAKE_SOURCE_DIR}/common/SC_Reply.cpp
+    )
 endif()
 
 set (FINAL_BUILD 0) # disable final build for scsynth
@@ -270,6 +281,14 @@ target_link_libraries(scsynth libscsynth)
 
 if(AUDIOAPI STREQUAL bela)
     target_link_libraries(scsynth ${XENOMAI_LIBRARIES} ${BELA_LIBRARIES} belaextra)
+elseif(AUDIOAPI STREQUAL webaudio)
+    target_compile_options(libscsynth PUBLIC -pthread)
+    target_compile_options(scsynth PRIVATE -pthread)
+    set_target_properties(scsynth PROPERTIES LINK_FLAGS
+        "-sAUDIO_WORKLET -sWASM_WORKERS -sUSE_PTHREADS -pthread \
+         -sEXPORTED_FUNCTIONS=['_malloc','_free','_scsynthSendOsc','_scsynthIsReady','_nextLine'] \
+         -sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','HEAPU8','UTF8ToString']"
+    )
 endif()
 
 if (PTHREADS_FOUND)
