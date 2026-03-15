@@ -340,9 +340,11 @@ SC_AudioDriver::~SC_AudioDriver() {
 
 void SC_AudioDriver::RunThread() {
     /* NB: on macOS we just keep the default thread priority */
-#ifdef NOVA_TT_PRIORITY_RT
+#ifndef __EMSCRIPTEN__
+#    ifdef NOVA_TT_PRIORITY_RT
     int priority = nova::thread_priority_interval_rt().first;
     nova::thread_set_priority_rt(priority);
+#    endif
 #endif
 
     TriggersFifo* trigfifo = &mWorld->hw->mTriggers;
