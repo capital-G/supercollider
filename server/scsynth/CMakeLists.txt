@@ -313,8 +313,43 @@ elseif(AUDIOAPI STREQUAL webaudio)
     set_target_properties(scsynth PROPERTIES LINK_FLAGS
         "-sAUDIO_WORKLET -sWASM_WORKERS -sUSE_PTHREADS -pthread \
          --bind \
+         -sMODULARIZE=1 \
+         -sEXPORT_ES6=1 \
+         -sEXPORT_NAME='ScSynth' \
+         --pre-js ${CMAKE_SOURCE_DIR}/platform/wasm/scsynth.pre.js \
          -sEXPORTED_FUNCTIONS=['_malloc','_free','_scsynthSendOsc','_scsynthIsReady','_nextLine','_webOscBindingAnchor'] \
-         -sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','HEAPU8','UTF8ToString']"
+         -sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','HEAPU8','UTF8ToString'] \
+    ")
+	if(WASM_DEBUG)
+		target_compile_options(scsynth PUBLIC -pthread -g)
+		target_compile_options(libscsynth PRIVATE -pthread -g)
+		# see https://developer.chrome.com/blog/wasm-debugging-2020
+		# -ASSERTIONS=1 is omitted
+		set_property(TARGET scsynth APPEND_STRING PROPERTY LINK_FLAGS "
+                -g \
+                -sNO_DISABLE_EXCEPTION_CATCHING \
+                -fdebug-compilation-dir='../..' \
+                -sNO_DISABLE_EXCEPTION_CATCHING \
+        ")
+	endif()
+    # create sub-folder in order to separate build files from cmake cache files
+    set_target_properties(scsynth PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY ${WASM_DIST_DIR}/scsynth
+    )
+    set(WASM_ASSET_DIR ${CMAKE_SOURCE_DIR}/platform/wasm)
+    set(SCSYNTH_WEB_FILES
+            ${WASM_ASSET_DIR}/scsynth/index.html
+            ${WASM_ASSET_DIR}/LICENSE
+            ${WASM_ASSET_DIR}/dev_server.py
+            ${WASM_ASSET_DIR}/scsynth/init.js
+            ${CMAKE_SOURCE_DIR}/README_WASM.md
+            ${WASM_ASSET_DIR}/scsynth/index.html
+            ${WASM_ASSET_DIR}/dev_server.py
+            ${WASM_ASSET_DIR}/scsynth/init.js
+    )
+    add_custom_command(TARGET scsynth POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${SCSYNTH_WEB_FILES} $<TARGET_FILE_DIR:scsynth>
     )
 endif()
 
