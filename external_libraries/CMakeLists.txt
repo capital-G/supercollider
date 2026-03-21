@@ -46,6 +46,7 @@ if(NOT SYSTEM_BOOST) # we compile boost ourselves
 		aux_source_directory(boost/libs/thread/src/pthread/ boost_thread_platform)
 	elseif(EMSCRIPTEN)
 		message(INFO "Use pthreads from emscripten")
+		aux_source_directory(boost/libs/thread/src/pthread/ boost_thread_platform)
 	else()
 		message(SEND_ERROR "we need to implement boost_thread")
 	endif()
@@ -60,6 +61,10 @@ if(NOT SYSTEM_BOOST) # we compile boost ourselves
 	if(WIN32)
 		target_compile_definitions(boost_thread_lib PUBLIC BOOST_THREAD_USE_LIB)
 		target_compile_definitions(boost_thread_lib PRIVATE BOOST_THREAD_BUILD_LIB)
+	endif()
+
+	if(EMSCRIPTEN)
+		target_compile_options(boost_thread_lib PUBLIC -pthread)
 	endif()
 
 	if(CMAKE_SYSTEM_NAME MATCHES "Linux")
@@ -187,4 +192,12 @@ endif()
 
 if(WIN32)
   add_subdirectory(portmidi)
+endif()
+
+if(EMSCRIPTEN)
+	target_compile_options(boost_program_options_lib PUBLIC -pthread)
+	target_compile_options(boost_regex_lib PUBLIC -pthread)
+	target_compile_options(tlsf PUBLIC -pthread)
+	target_compile_options(oscpack PUBLIC -pthread)
+	target_compile_options(yaml PUBLIC -pthread)
 endif()
