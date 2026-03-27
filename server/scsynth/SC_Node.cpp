@@ -294,7 +294,7 @@ void Node_Trace(Node* inNode) {
 
 void Node_End(Node* inNode) { inNode->mCalcFunc = (NodeCalcFunc)&Node_Delete; }
 
-
+#ifndef __EMSCRIPTEN__
 // send a trigger from a node to a client program.
 // this function puts the trigger on a FIFO which is harvested by another thread that
 // actually does the sending.
@@ -340,6 +340,12 @@ void Node_SendReply(Node* inNode, int replyID, const char* cmdName, int numArgs,
     msg.mRTMemory = mem;
     world->hw->mNodeMsgs.Write(msg);
 }
+#else
+// no-op on emscripten b/c of missing network interface
+
+void Node_SendTrigger(Node* inNode, int triggerID, float value) {}
+void Node_SendReply(Node* inNode, int replyID, const char* cmdName, int numArgs, const float* values) {}
+#endif
 
 void Node_SendReply(Node* inNode, int replyID, const char* cmdName, float value) {
     Node_SendReply(inNode, replyID, cmdName, 1, &value);
