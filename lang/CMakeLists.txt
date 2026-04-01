@@ -402,6 +402,7 @@ elseif(EMSCRIPTEN)
     	-sMODULARIZE=1 \
     	-sEXPORTED_FUNCTIONS=['_webOscBindingAnchor','_main','_free','_scWasmBindingAnchor'] \
     	-sPTHREAD_POOL_SIZE=4 \
+    	--preload-file ${CMAKE_SOURCE_DIR}/SCClassLibrary@/sc/SCClassLibrary \
     ")
     if(WASM_DEBUG)
         target_compile_options(libsclang PUBLIC -pthread -g)
