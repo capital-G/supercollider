@@ -165,6 +165,7 @@ elseif (AUDIOAPI STREQUAL webaudio)
             FFT2InterfaceTable.cpp
             FeatureDetection.cpp
             PV_ThirdParty.cpp
+            DiskIO_UGens.cpp
     )
     foreach(plugin ${plugin_sources_rel})
         string(CONCAT plugin_abs ${CMAKE_SOURCE_DIR}/server/plugins/ ${plugin} )
@@ -319,6 +320,7 @@ elseif(AUDIOAPI STREQUAL webaudio)
          --pre-js ${CMAKE_SOURCE_DIR}/platform/wasm/scsynth.pre.js \
          -sEXPORTED_FUNCTIONS=['_malloc','_free','_scsynthSendOsc','_scsynthIsReady','_nextLine','_webOscBindingAnchor'] \
          -sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','HEAPU8','UTF8ToString'] \
+         --preload-file ${CMAKE_SOURCE_DIR}/sounds@/sc/sounds \
     ")
 	if(WASM_DEBUG)
 		target_compile_options(scsynth PUBLIC -pthread -g)

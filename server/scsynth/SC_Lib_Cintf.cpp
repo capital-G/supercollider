@@ -115,9 +115,7 @@ extern void Pan_Load(InterfaceTable* table);
 extern void Reverb_Load(InterfaceTable* table);
 extern void Trigger_Load(InterfaceTable* table);
 extern void UnaryOp_Load(InterfaceTable* table);
-#    ifndef __EMSCRIPTEN__
 extern void DiskIO_Load(InterfaceTable* table);
-#    endif
 extern void Test_Load(InterfaceTable* table);
 extern void PhysicalModeling_Load(InterfaceTable* table);
 extern void Demand_Load(InterfaceTable* table);
@@ -131,8 +129,8 @@ extern void UIUGens_Unload(void);
 
 void deinitialize_library() {
 #ifdef STATIC_PLUGINS
-#    ifndef __EMSCRIPTEN__
     DiskIO_Unload();
+#    ifndef __EMSCRIPTEN__
     UIUGens_Unload();
 #    endif
 #endif // STATIC_PLUGINS
@@ -183,9 +181,7 @@ void initialize_library(const char* uGensPluginPath) {
     Reverb_Load(&gInterfaceTable);
     Trigger_Load(&gInterfaceTable);
     UnaryOp_Load(&gInterfaceTable);
-#    ifndef __EMSCRIPTEN__
     DiskIO_Load(&gInterfaceTable);
-#    endif
     PhysicalModeling_Load(&gInterfaceTable);
     Test_Load(&gInterfaceTable);
     Demand_Load(&gInterfaceTable);

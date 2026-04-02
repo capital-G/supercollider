@@ -17,6 +17,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <filesystem>
+#include <iostream>
 #include <sys/time.h>
 #include <emscripten/bind.h>
 #include <emscripten/webaudio.h>
@@ -301,6 +303,9 @@ int World_OpenUDP(World*, const char*, int) { return 1; }
 int World_OpenTCP(World*, const char*, int, int, int) { return 1; }
 }
 
+// IO/Disk UGens patching
+// void DiskIO_Unload(void) {};
+
 /*
  *  JS glue code
  *
@@ -484,6 +489,11 @@ void scsynthInit(ScWebAudioOptions* options) {
         .latencyHint = "interactive",
         .sampleRate = 48000,
     };
+
+    std::cout << "HI" << std::endl;
+    std::string path = "/sc/sounds";
+    for (const auto& entry : std::filesystem::directory_iterator(path))
+        std::cout << entry.path() << std::endl;
 
     EMSCRIPTEN_WEBAUDIO_T context = emscripten_create_audio_context(&attributes);
 
