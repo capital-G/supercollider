@@ -45,8 +45,8 @@ static int64 gOSCoffset = 0;
 static SC_WebAudioDriver* gScWebAudioDriver = nullptr;
 // world of scsynth
 static World* gWorld = nullptr;
-// stack for audio worklet
-static uint8_t gAudioWorkletStack[4096];
+// stack for audio worklet - increase this if unexpected infs/nans pop up in the graph
+static uint8_t gAudioWorkletStack[65536];
 // global such that it can be also accessed from JS for mic access
 static EMSCRIPTEN_WEBAUDIO_T gAudioContext = 0;
 // global such that ic can be also accessed from JS for mic access
