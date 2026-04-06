@@ -402,6 +402,7 @@ elseif(EMSCRIPTEN)
     	-sMODULARIZE=1 \
     	-sEXPORTED_FUNCTIONS=['_webOscBindingAnchor','_main','_free','_scWasmBindingAnchor'] \
     	-sPTHREAD_POOL_SIZE=4 \
+    	-sFETCH=1 \
     	--preload-file ${CMAKE_SOURCE_DIR}/SCClassLibrary@/sc/SCClassLibrary \
     ")
     if(WASM_DEBUG)

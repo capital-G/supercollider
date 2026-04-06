@@ -21,6 +21,8 @@
 
 #pragma once
 
+#include <SC_WorldOptions.h>
+
 #include "SC_Errors.h"
 
 #ifndef NO_LIBSNDFILE
@@ -38,6 +40,11 @@
 #    include "string.h"
 
 #    include <boost/algorithm/string/predicate.hpp> // iequals
+
+
+#    ifdef __EMSCRIPTEN__
+#        include <emscripten/fetch.h>
+#    endif
 
 using boost::iequals;
 
@@ -197,6 +204,102 @@ inline SNDFILE* sndfileOpen(const char* path, int mode, SF_INFO* sfinfo) { retur
 inline SNDFILE* sndfileOpenFromCStr(const char* path, int mode, SF_INFO* sfinfo) {
     return sndfileOpen(path, mode, sfinfo);
 }
+
+#        ifdef __EMSCRIPTEN__
+
+/** @brief Wraps a fetch object and provides a wrapper to access
+ *  the downloaded file in libsndfile through a virtual i/o interface.
+ */
+class FetchIO {
+public:
+    emscripten_fetch_t* mFetch;
+    sf_count_t mOffset = 0;
+    SF_VIRTUAL_IO mVirtualIo;
+
+    FetchIO(emscripten_fetch_t* fetch): mFetch(fetch) {
+        mVirtualIo.get_filelen = fileLen;
+        mVirtualIo.seek = seek;
+        mVirtualIo.read = read;
+        mVirtualIo.write = write;
+        mVirtualIo.tell = tell;
+    }
+
+    ~FetchIO() {
+        emscripten_fetch_close(mFetch);
+        mFetch->dataOffset = 0;
+    }
+
+    // the following functions are static b/c libsndfile requires c function ptrs
+    static sf_count_t fileLen(void* userData) { return static_cast<FetchIO*>(userData)->mFetch->numBytes; }
+
+    static sf_count_t seek(sf_count_t offset, int whence, void* userData) {
+        auto fio = static_cast<FetchIO*>(userData);
+        switch (whence) {
+        case SEEK_SET:
+            fio->mOffset = offset;
+            break;
+        case SEEK_CUR:
+            fio->mOffset += offset;
+            break;
+        case SEEK_END:
+            fio->mOffset = fio->mFetch->numBytes + offset;
+            break;
+        default:
+            break;
+        }
+        return fio->mOffset;
+    }
+
+    static sf_count_t read(void* ptr, sf_count_t count, void* userData) {
+        auto fio = static_cast<FetchIO*>(userData);
+        sf_count_t available = fio->mFetch->numBytes - fio->mOffset;
+        if (available <= 0)
+            return 0;
+        if (count > available)
+            count = available;
+        memcpy(ptr, fio->mFetch->data + fio->mOffset, count);
+        fio->mOffset += count;
+        return count;
+    }
+
+    // we do not implement write on those buffers
+    static sf_count_t write(const void* ptr, sf_count_t count, void* userData) { return 0; }
+
+    static sf_count_t tell(void* userData) {
+        auto fio = static_cast<FetchIO*>(userData);
+        return fio->mOffset;
+    }
+};
+
+
+/** @brief emscripten overload which can be used to also download a soundfile via http(s)
+ *  using the emscripten fetch api.
+ *  The fetch API of the browser is used to download the file into memory (sync) and serve it to libsndfile
+ *  through a virtual filesystem.
+ *  In case a file gets downloaded, the passed fetch object refers to the object that was fetched and should
+ *  be freed after all reading has been done (aka when closing the sndfile).
+ */
+inline SNDFILE* sndfileOpenFromCStr(const char* path, int mode, SF_INFO* sfinfo, std::unique_ptr<FetchIO>& fetchIo) {
+    auto stringPath = std::string(path);
+    if (stringPath.rfind("http", 0) == 0) {
+        emscripten_fetch_attr_t attr;
+        emscripten_fetch_attr_init(&attr);
+        strcpy(attr.requestMethod, "GET");
+        attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY | EMSCRIPTEN_FETCH_SYNCHRONOUS;
+        scprintf("Start downloading %s\n", path);
+        auto fetch = emscripten_fetch(&attr, path);
+        if (fetch->status != 200) {
+            scprintf("Downloading %s failed, status code: %d.\n", path, fetch->status);
+            emscripten_fetch_close(fetch);
+            return nullptr;
+        }
+        fetchIo.reset(new FetchIO(fetch));
+
+        return sf_open_virtual(&fetchIo->mVirtualIo, mode, sfinfo, fetchIo.get());
+    }
+    return sndfileOpenFromCStr(path, mode, sfinfo);
+}
+#        endif
 
 // simple forward
 inline SndfileHandle makeSndfileHandle(const char* path, int mode = SFM_READ, int format = 0, int channels = 0,

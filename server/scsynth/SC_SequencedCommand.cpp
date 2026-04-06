@@ -494,7 +494,16 @@ bool BufAllocReadCmd::Stage2() {
     SndBuf* buf = World_GetNRTBuf(mWorld, mBufIndex);
     SF_INFO fileinfo;
     memset(&fileinfo, 0, sizeof(fileinfo));
+#    ifndef __EMSCRIPTEN__
     SNDFILE* sf = sndfileOpenFromCStr(mFilename, SFM_READ, &fileinfo);
+#    else
+    // on emscripten, we can download files using a fetch API of the browser.
+    // the associated resource from which the downloaded file gets read gets passed
+    // as a unique_ptr to an overloaded function. The smart pointer holds the resource
+    // of the (optional) downloaded file.
+    std::unique_ptr<FetchIO> fetchIo;
+    SNDFILE* sf = sndfileOpenFromCStr(mFilename, SFM_READ, &fileinfo, fetchIo);
+#    endif
     if (!sf) {
         char str[ERR_BUF_SIZE];
         snprintf(str, ERR_BUF_SIZE, "File '%s' could not be opened: %s\n", mFilename, sf_strerror(nullptr));
@@ -591,7 +600,16 @@ bool BufReadCmd::Stage2() {
     if (framesToEnd <= 0)
         return true;
 
+#    ifndef __EMSCRIPTEN__
     SNDFILE* sf = sndfileOpenFromCStr(mFilename, SFM_READ, &fileinfo);
+#    else
+    // on emscripten, we can download files using a fetch API of the browser.
+    // the associated resource from which the downloaded file gets read gets passed
+    // as a unique_ptr to an overloaded function. The smart pointer holds the resource
+    // of the (optional) downloaded file.
+    std::unique_ptr<FetchIO> fetchIo;
+    SNDFILE* sf = sndfileOpenFromCStr(mFilename, SFM_READ, &fileinfo, fetchIo);
+#    endif
     if (!sf) {
         char str[ERR_BUF_SIZE];
         snprintf(str, ERR_BUF_SIZE, "File '%s' could not be opened: %s\n", mFilename, sf_strerror(nullptr));
@@ -744,7 +762,16 @@ bool BufAllocReadChannelCmd::Stage2() {
 
     SF_INFO fileinfo;
     memset(&fileinfo, 0, sizeof(fileinfo));
+#    ifndef __EMSCRIPTEN__
     SNDFILE* sf = sndfileOpenFromCStr(mFilename, SFM_READ, &fileinfo);
+#    else
+    // on emscripten, we can download files using a fetch API of the browser.
+    // the associated resource from which the downloaded file gets read gets passed
+    // as a unique_ptr to an overloaded function. The smart pointer holds the resource
+    // of the (optional) downloaded file.
+    std::unique_ptr<FetchIO> fetchIo;
+    SNDFILE* sf = sndfileOpenFromCStr(mFilename, SFM_READ, &fileinfo, fetchIo);
+#    endif
     if (!sf) {
         char str[ERR_BUF_SIZE];
         snprintf(str, ERR_BUF_SIZE, "File '%s' could not be opened: %s\n", mFilename, sf_strerror(nullptr));
