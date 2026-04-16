@@ -317,10 +317,10 @@ elseif(AUDIOAPI STREQUAL webaudio)
          -sMODULARIZE=1 \
          -sEXPORT_ES6=1 \
          -sALLOW_MEMORY_GROWTH \
-		-sINITIAL_MEMORY=64MB \
+         -sINITIAL_MEMORY=64MB \
          -sEXPORT_NAME='ScSynth' \
          --pre-js ${CMAKE_SOURCE_DIR}/platform/wasm/scsynth.pre.js \
-         -sEXPORTED_FUNCTIONS=['_malloc','_free','_scsynthSendOsc','_scsynthIsReady','_nextLine','_webOscBindingAnchor'] \
+         -sEXPORTED_FUNCTIONS=['FS','_malloc','_free','_scsynthSendOsc','_scsynthIsReady','_nextLine','_webOscBindingAnchor'] \
          -sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','HEAPU8','UTF8ToString'] \
          -sFETCH=1 \
          --preload-file ${CMAKE_SOURCE_DIR}/sounds@/sc/sounds \

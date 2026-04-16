@@ -400,7 +400,7 @@ elseif(EMSCRIPTEN)
     	-sEXPORT_ES6=1 \
     	-sEXPORT_NAME='ScLang' \
     	-sMODULARIZE=1 \
-    	-sEXPORTED_FUNCTIONS=['_webOscBindingAnchor','_main','_free','_scWasmBindingAnchor'] \
+    	-sEXPORTED_FUNCTIONS=['_webOscBindingAnchor','_main','_free','_scWasmBindingAnchor','FS'] \
     	-sPTHREAD_POOL_SIZE=4 \
     	-sFETCH=1 \
     	--preload-file ${CMAKE_SOURCE_DIR}/SCClassLibrary@/sc/SCClassLibrary \
