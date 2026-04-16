@@ -56,6 +56,14 @@ static int prRunJsCode(struct VMGlobals* g, int numArgsPushed) {
     return errNone;
 }
 
+static void doRecompile(void*) { SC_LanguageClient::instance()->recompileLibrary(false); }
+
+static int recompile(VMGlobals* g, int numArgsPushed) {
+    // we need to call this from a clean stack and not from the inside - so we defer it by dispatching it
+    emscripten_dispatch_to_thread_async(gSclangWasmThread, EM_FUNC_SIG_VI, doRecompile, nullptr, nullptr);
+    return errNone;
+}
+
 
 void SC_WasmClient::onLibraryStartup() {
     SC_LanguageClient::onLibraryStartup();
@@ -63,6 +71,7 @@ void SC_WasmClient::onLibraryStartup() {
     base = nextPrimitiveIndex();
     definePrimitive(base, index++, "_Wasm_runCode", prRunJsCode, 2, 0);
     definePrimitive(base, index++, "_AppClock_SchedNotify", primitiveTicker, 1, 0);
+    definePrimitive(base, index++, "_Recompile", recompile, 1, 0);
 }
 
 void SC_WasmClient::ticker() {
@@ -217,10 +226,19 @@ void cBootInterpreter() {
     pthread_create(&gSclangWasmThread, nullptr, bootInterpreter, nullptr);
 }
 
+void cRecompileLibrary() {
+    if (gWasmClient != nullptr) {
+        gWasmClient->recompileLibrary(false);
+    } else {
+        std::cout << "sclang has not been initalized - can not recompile!" << std::endl;
+    }
+}
+
 EMSCRIPTEN_BINDINGS(sclangWasm) {
     emscripten::function("bootInterpreter", &cBootInterpreter);
     emscripten::function("runCode", &runCodeOnSclangThread);
     emscripten::function("sendOsc", &passOscMessageToSclangThread);
+    emscripten::function("recompile", &cRecompileLibrary);
 }
 
 // export this to avoid dead code elimination
