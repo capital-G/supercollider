@@ -20,6 +20,8 @@ SuperCollider real time audio synthesis system wasm binding
 #include "SC_WasmClient.h"
 
 #include <iostream>
+#include <SC_Filesystem.hpp>
+#include <SC_LanguageConfig.hpp>
 #include <emscripten/bind.h>
 #include <emscripten/emscripten.h>
 #include <emscripten/threading.h>
@@ -95,6 +97,14 @@ static void* bootInterpreter(void* args) {
         std::cout << "ERROR: Failed to create sclang client." << std::endl;
         return nullptr;
     };
+
+    // add quark import dir
+    gLanguageConfig = new SC_LanguageConfig();
+    gLanguageConfig->setExcludeDefaultPaths(false);
+    auto quarkDir =
+        SC_Filesystem::instance().getDirectory(SC_Filesystem::DirName::UserAppSupport).append("downloaded-quarks");
+    gLanguageConfig->addIncludedDirectory(quarkDir);
+
     auto options = SC_LanguageClient::Options();
     gWasmClient->initRuntime(options);
     compileLibrary(false);
