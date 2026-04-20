@@ -1627,7 +1627,16 @@ int prSFOpenRead(struct VMGlobals* g, int numArgsPushed) {
     filename[slotRawString(b)->size] = 0;
 
     info.format = 0;
+#    ifdef __EMSCRIPTEN__
+    // on emscripten, we can download files using a fetch API of the browser.
+    // the associated resource from which the downloaded file gets read gets passed
+    // as a unique_ptr to an overloaded function. The smart pointer holds the resource
+    // of the (optional) downloaded file.
+    std::unique_ptr<FetchIO> fetchIo;
+    file = sndfileOpenFromCStr(filename, SFM_READ, &info, fetchIo);
+#    else
     file = sndfileOpenFromCStr(filename, SFM_READ, &info);
+#    endif
 
     if (file) {
         SetPtr(obj1->slots + 0, file);
