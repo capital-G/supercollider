@@ -323,7 +323,6 @@ elseif(AUDIOAPI STREQUAL webaudio)
          -sEXPORTED_FUNCTIONS=['FS','_malloc','_free','_scsynthSendOsc','_scsynthIsReady','_nextLine','_webOscBindingAnchor'] \
          -sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','HEAPU8','UTF8ToString'] \
          -sFETCH=1 \
-         --preload-file ${CMAKE_SOURCE_DIR}/sounds@/sc/sounds \
     ")
 	if(WASM_DEBUG)
 		target_compile_options(scsynth PUBLIC -pthread -g)

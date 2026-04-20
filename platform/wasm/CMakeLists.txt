@@ -19,7 +19,6 @@ set(EDITOR_WASM_FILES
     ${CMAKE_SOURCE_DIR}/README_WASM.md
     $<TARGET_FILE_DIR:scsynth>/scsynth.js
     $<TARGET_FILE_DIR:scsynth>/scsynth.wasm
-    $<TARGET_FILE_DIR:scsynth>/scsynth.data
     $<TARGET_FILE_DIR:sclang>/sclang.js
     $<TARGET_FILE_DIR:sclang>/sclang.wasm
     $<TARGET_FILE_DIR:sclang>/sclang.data
