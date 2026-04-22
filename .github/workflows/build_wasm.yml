@@ -11,6 +11,25 @@ jobs:
     runs-on: ubuntu-24.04
     name: sc wasm
 
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - job-name: "libsndfile"
+            artifact-suffix: "-libsndfile"
+            install-libsndfile: true
+            additional-cmake-flags: "-DNO_LIBSNDFILE=no -DWASM_DEBUG=off"
+
+          - job-name: "libsndfile-debug"
+            artifact-suffix: "-libsndfile-debug"
+            install-libsndfile: true
+            additional-cmake-flags: "-DNO_LIBSNDFILE=no -DWASM_DEBUG=on"
+
+          - job-name: "plain"
+            artifact-suffix: ""
+            install-libsndfile: false
+            additional-cmake-flags: "-DNO_LIBSNDFILE=yes -DWASM_DEBUG=off"
+
     env:
       BUILD_PATH: ${{ github.workspace }}/build
 
@@ -34,16 +53,16 @@ jobs:
           sudo apt-get install --yes build-essential cmake pkg-config libjack-jackd2-dev libsndfile1-dev libasound2-dev libavahi-client-dev libreadline6-dev libfftw3-dev libicu-dev libxt-dev libudev-dev ccache clang-14 libc++-14-dev libc++abi-14-dev
 
       - name: build libsndfile
+        if: ${{ matrix.install-libsndfile }}
         run: platform/wasm/build_libsndfile.sh
 
       - name: configure
         run: |
           mkdir $BUILD_PATH && cd $BUILD_PATH
-          emcmake cmake \
+          emcmake cmake ${{ matrix.additional-cmake-flags}} \
             -DSC_EL=no \
             -DSUPERNOVA=no \
             -DSC_HIDAPI=no \
-            -DNO_LIBSNDFILE=yes \
             -DSC_QT=no \
             -DNO_AVAHI=yes \
             -DSC_ABLETON_LINK=no \
@@ -57,7 +76,7 @@ jobs:
       - name: build
         run: |
           cd $BUILD_PATH
-          emmake cmake --build . --target  webeditor
+          emmake cmake --build . --target webeditor
 
       - name: create archive
         run: cd $BUILD_PATH/wasm-dist && zip --symlinks -r wasm-dist.zip .
@@ -65,5 +84,5 @@ jobs:
       - name: upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: "SuperCollider-${{ inputs.sc-version }}-wasm.zip"
+          name: "SuperCollider-${{ inputs.sc-version }}-wasm${{ matrix.artifact-suffix }}.zip"
           path: ${{ env.BUILD_PATH }}/wasm-dist/wasm-dist.zip
