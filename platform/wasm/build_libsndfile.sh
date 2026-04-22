@@ -18,6 +18,7 @@ cd flac
 mkdir build
 cd build
 emcmake cmake \
+  -DCMAKE_INSTALL_PREFIX=$(em-config CACHE)/sysroot \
   -DINSTALL_MANPAGES=OFF \
   -DBUILD_DOCS=OFF \
   -DBUILD_EXAMPLES=OFF \
@@ -50,7 +51,7 @@ git clone --depth 1 https://github.com/xiph/opus.git
 cd opus
 mkdir build
 cd build
-emcmake cmake ..
+emcmake cmake -DCMAKE_INSTALL_PREFIX=$(em-config CACHE)/sysroot ..
 emmake cmake --build .
 emmake cmake --install .
 
@@ -60,7 +61,7 @@ git clone --depth 1 https://github.com/xiph/vorbis.git
 cd vorbis
 mkdir build
 cd build
-emcmake cmake ..
+emcmake cmake -DCMAKE_INSTALL_PREFIX=$(em-config CACHE)/sysroot ..
 emmake make
 emmake make install
 
@@ -71,6 +72,7 @@ cd libsndfile
 mkdir build
 cd build
 emcmake cmake .. \
+    -DCMAKE_INSTALL_PREFIX=$(em-config CACHE)/sysroot \
     -DBUILD_EXAMPLES=OFF \
     -DBUILD_PROGRAMS=OFF \
     -DBUILD_TESTING=OFF \
