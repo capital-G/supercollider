@@ -364,7 +364,11 @@ endif()
 target_link_libraries(libsclang ${YAMLCPP_LIBRARY})
 
 add_executable(sclang LangSource/cmdLineFuncs.cpp ${RES_FILES})
-target_link_libraries(sclang libsclang)
+if(EMSCRIPTEN)
+    target_link_libraries(sclang -Wl,--whole-archive libsclang -Wl,--no-whole-archive)
+else()
+    target_link_libraries(sclang libsclang)
+endif()
 target_link_libraries(sclang ${ICU_LIBRARIES})
 
 target_compile_definitions(sclang PUBLIC USE_SC_TERMINAL_CLIENT)
