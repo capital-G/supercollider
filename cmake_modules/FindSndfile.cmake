@@ -38,7 +38,17 @@ elseif (APPLE)
     message(STATUS "Found install of libsndfile in ${SNDFILE_LIBRARY}")
     set(SNDFILE_LIBRARIES ${SNDFILE_LIBRARY})
   endif()
+elseif(EMSCRIPTEN)
+  find_path(SNDFILE_INCLUDE_DIR sndfile.h)
+  find_library(SNDFILE_LIBRARY NAMES sndfile)
 
+  if(SNDFILE_INCLUDE_DIR AND SNDFILE_LIBRARY)
+    set(SNDFILE_FOUND TRUE)
+    set(SNDFILE_LIBRARIES ${SNDFILE_LIBRARY})
+    message(STATUS "Found libsndfile for Emscripten: ${SNDFILE_LIBRARY}")
+  else()
+    set(SNDFILE_FOUND FALSE)
+  endif()
 else()
   find_path(SNDFILE_INCLUDE_DIR sndfile.h
     HINTS

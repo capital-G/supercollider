@@ -115,7 +115,9 @@ extern void Pan_Load(InterfaceTable* table);
 extern void Reverb_Load(InterfaceTable* table);
 extern void Trigger_Load(InterfaceTable* table);
 extern void UnaryOp_Load(InterfaceTable* table);
+#    if SNDFILE_FOUND
 extern void DiskIO_Load(InterfaceTable* table);
+#    endif
 extern void Test_Load(InterfaceTable* table);
 extern void PhysicalModeling_Load(InterfaceTable* table);
 extern void Demand_Load(InterfaceTable* table);
@@ -123,13 +125,17 @@ extern void DynNoise_Load(InterfaceTable* table);
 extern void FFT_UGens_Load(InterfaceTable* table);
 extern void iPhone_Load(InterfaceTable* table);
 
+#    if SNDFILE_FOUND
 extern void DiskIO_Unload(void);
+#    endif
 extern void UIUGens_Unload(void);
 #endif // STATIC_PLUGINS
 
 void deinitialize_library() {
 #ifdef STATIC_PLUGINS
+#    if SNDFILE_FOUND
     DiskIO_Unload();
+#    endif
 #    ifndef __EMSCRIPTEN__
     UIUGens_Unload();
 #    endif
@@ -181,7 +187,9 @@ void initialize_library(const char* uGensPluginPath) {
     Reverb_Load(&gInterfaceTable);
     Trigger_Load(&gInterfaceTable);
     UnaryOp_Load(&gInterfaceTable);
+#    if SNDFILE_FOUND
     DiskIO_Load(&gInterfaceTable);
+#    endif
     PhysicalModeling_Load(&gInterfaceTable);
     Test_Load(&gInterfaceTable);
     Demand_Load(&gInterfaceTable);

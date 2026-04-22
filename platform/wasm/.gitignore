@@ -11,3 +11,5 @@ sclang/sclang.wasm
 
 scsynth/scsynth.js
 scsynth/scsynth.wasm
+
+tmp/

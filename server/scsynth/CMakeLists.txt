@@ -165,10 +165,12 @@ elseif (AUDIOAPI STREQUAL webaudio)
             FFT2InterfaceTable.cpp
             FeatureDetection.cpp
             PV_ThirdParty.cpp
-            DiskIO_UGens.cpp
     )
+    if(SNDFILE_FOUND)
+        list(APPEND plugin_sources_rel DiskIO_UGens.cpp)
+    endif()
     foreach(plugin ${plugin_sources_rel})
-        string(CONCAT plugin_abs ${CMAKE_SOURCE_DIR}/server/plugins/ ${plugin} )
+string(CONCAT plugin_abs ${CMAKE_SOURCE_DIR}/server/plugins/ ${plugin} )
         list(APPEND plugin_sources_abs ${plugin_abs})
     endforeach(plugin)
 
@@ -229,6 +231,12 @@ if(NOT NO_LIBSNDFILE)
 		endif()
 		target_link_libraries(libscsynth ${SNDFILE_LIBRARIES})
 		target_include_directories(libscsynth PUBLIC ${SNDFILE_INCLUDE_DIR})
+		if(EMSCRIPTEN)
+			# ogg and mpg123 are emscripten ports, the rest needs to be self-compiled
+			target_link_libraries(libscsynth -lFLAC -lopus -lmp3lame)
+			target_link_libraries(libscsynth -sUSE_OGG=1 -sUSE_MPG123=1 -sUSE_VORBIS=1)
+			target_link_directories(libscsynth PUBLIC "${EMSCRIPTEN_SYSROOT}/lib/wasm32-emscripten")
+		endif()
 	else()
 		message(SEND_ERROR "Cannot find libsndfile")
 	endif()
