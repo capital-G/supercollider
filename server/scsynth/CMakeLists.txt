@@ -235,7 +235,7 @@ if(NOT NO_LIBSNDFILE)
 			# ogg and mpg123 are emscripten ports, the rest needs to be self-compiled
 			target_link_libraries(libscsynth -lFLAC -lopus -lmp3lame)
 			target_link_libraries(libscsynth -sUSE_OGG=1 -sUSE_MPG123=1 -sUSE_VORBIS=1)
-			target_link_directories(libscsynth PUBLIC "${EMSCRIPTEN_SYSROOT}/lib/wasm32-emscripten")
+			target_link_directories(libscsynth PUBLIC "${EMSCRIPTEN_SYSROOT}/lib/wasm32-emscripten" "${EMSCRIPTEN_SYSROOT}/lib")
 		endif()
 	else()
 		message(SEND_ERROR "Cannot find libsndfile")
