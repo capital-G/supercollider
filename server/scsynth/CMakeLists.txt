@@ -341,7 +341,7 @@ elseif(AUDIOAPI STREQUAL webaudio)
 		set_property(TARGET scsynth APPEND_STRING PROPERTY LINK_FLAGS "
                 -g \
                 -sNO_DISABLE_EXCEPTION_CATCHING \
-                -fdebug-compilation-dir='../..' \
+                -fdebug-compilation-dir=../.. \
                 -sNO_DISABLE_EXCEPTION_CATCHING \
         ")
 	endif()
