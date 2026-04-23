@@ -71,7 +71,7 @@ jobs:
             -Wno-dev \
             -DSSE=no \
             -DSSE2=no \
-            -DNO_X11=yes \
+            -DNO_X11=no \
             ..
 
       - name: build

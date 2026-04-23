@@ -165,6 +165,7 @@ elseif (AUDIOAPI STREQUAL webaudio)
             FFT2InterfaceTable.cpp
             FeatureDetection.cpp
             PV_ThirdParty.cpp
+            WasmUGens.cpp
     )
     if(SNDFILE_FOUND)
         list(APPEND plugin_sources_rel DiskIO_UGens.cpp)

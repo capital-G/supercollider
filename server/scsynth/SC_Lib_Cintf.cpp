@@ -124,6 +124,9 @@ extern void Demand_Load(InterfaceTable* table);
 extern void DynNoise_Load(InterfaceTable* table);
 extern void FFT_UGens_Load(InterfaceTable* table);
 extern void iPhone_Load(InterfaceTable* table);
+#    if __EMSCRIPTEN__
+extern void WasmUGens_Load(InterfaceTable* table);
+#    endif
 
 #    if SNDFILE_FOUND
 extern void DiskIO_Unload(void);
@@ -194,6 +197,9 @@ void initialize_library(const char* uGensPluginPath) {
     Test_Load(&gInterfaceTable);
     Demand_Load(&gInterfaceTable);
     DynNoise_Load(&gInterfaceTable);
+#    if __EMSCRIPTEN__
+    WasmUGens_Load(&gInterfaceTable);
+#    endif
 #    if defined(SC_IPHONE) && !TARGET_IPHONE_SIMULATOR
     iPhone_Load(&gInterfaceTable);
 #    endif
