@@ -422,7 +422,7 @@ elseif(EMSCRIPTEN)
         set_property(TARGET sclang APPEND_STRING PROPERTY LINK_FLAGS "
                 -g \
                 -sASSERTIONS \
-                -fdebug-compilation-dir='..' \
+                -fdebug-compilation-dir=.. \
                 -sNO_DISABLE_EXCEPTION_CATCHING \
         ")
     endif()
