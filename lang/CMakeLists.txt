@@ -419,7 +419,7 @@ elseif(EMSCRIPTEN)
         target_compile_options(libsclang PUBLIC -pthread -g)
         target_compile_options(sclang PRIVATE -pthread -g)
         target_compile_options(libscsynth PRIVATE -pthread -g)
-        set_property(TARGET sclang APPEND_STRING PROPERTY LINK_FLAGS "
+        set_property(TARGET sclang APPEND_STRING PROPERTY LINK_FLAGS "\
                 -g \
                 -sASSERTIONS \
                 -fdebug-compilation-dir=.. \
