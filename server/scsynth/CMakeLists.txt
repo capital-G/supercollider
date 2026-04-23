@@ -329,7 +329,7 @@ elseif(AUDIOAPI STREQUAL webaudio)
          -sEXPORT_NAME='ScSynth' \
          --pre-js ${CMAKE_SOURCE_DIR}/platform/wasm/scsynth.pre.js \
          --pre-js ${CMAKE_SOURCE_DIR}/platform/wasm/common.pre.js \
-         -sEXPORTED_FUNCTIONS=['FS','_malloc','_free','_scsynthSendOsc','_scsynthIsReady','_nextLine','_webOscBindingAnchor'] \
+         -sEXPORTED_FUNCTIONS=['FS','_malloc','_free'] \
          -sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','HEAPU8','UTF8ToString'] \
          -sFETCH=1 \
     ")
