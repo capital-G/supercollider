@@ -19,11 +19,6 @@ jobs:
             install-libsndfile: true
             additional-cmake-flags: "-DNO_LIBSNDFILE=no -DWASM_DEBUG=off"
 
-          - job-name: "libsndfile-debug"
-            artifact-suffix: "-libsndfile-debug"
-            install-libsndfile: true
-            additional-cmake-flags: "-DNO_LIBSNDFILE=no -DWASM_DEBUG=on"
-
           - job-name: "plain"
             artifact-suffix: ""
             install-libsndfile: false
