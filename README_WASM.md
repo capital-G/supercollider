@@ -150,6 +150,14 @@ source ./emsdk_env.sh
 
 This should make the `emcc` compiler available in this shell, which can be verified by running `emcc -v`.
 
+> **Optional: Build libsndfile**
+>
+> Building SuperCollider with libsndfile adds support of reading and writing a variety of audio formats such as wav, mp3, ogg etc.
+> Since wasm/emscripten does not have a package manager, it is necessary to build libsndfile and all of its transient dependencies in the existing build environment, which can result in a rather complex build setup.
+> 
+> [platform/wasm/build_libsndfile.sh](platform/wasm/build_libsndfile.sh) can be used as a guidance on how to build libsndfile using emscripten, as it is also used in the CI environment to build emscripten.
+> To build SuperCollider with emscripten support, set the configuration flag `-DNO_LIBSNDFILE=no`.
+
 Create a clean(!) build directory, e.g. `build-emscripten` and execute the following command in it to configure the build
 
 ```shell
