@@ -21,6 +21,8 @@
 
 #include <iostream>
 #include <SC_Lock.h>
+#include <SC_PlugIn.hpp>
+#include <emscripten/bind.h>
 
 #include "emscripten/html5.h"
 #include "SC_PlugIn.h"
@@ -204,6 +206,50 @@ static bool processKeyup(int eventType, const EmscriptenKeyboardEvent* keyEvent,
     return false;
 }
 
+struct AccelerometerValues {
+    float x;
+    float y;
+    float z;
+    bool isRunning = false;
+};
+
+AccelerometerValues gAccelerometerValues;
+
+class Accelerometer : public SCUnit {
+public:
+    Accelerometer() { mCalcFunc = make_calc_function<Accelerometer, &Accelerometer::next_k>(); }
+
+private:
+    void next_k(int numSamples) {
+        out0(0) = gAccelerometerValues.x;
+        out0(1) = gAccelerometerValues.y;
+        out0(2) = gAccelerometerValues.z;
+        out0(3) = gAccelerometerValues.isRunning;
+    }
+};
+
+struct GyroscopeValues {
+    float alpha;
+    float beta;
+    float gamma;
+    bool isRunning = false;
+};
+
+GyroscopeValues gGyroscopeValues;
+
+class Gyroscope : public SCUnit {
+public:
+    Gyroscope() { mCalcFunc = make_calc_function<Gyroscope, &Gyroscope::next_k>(); }
+
+private:
+    void next_k(int numSamples) {
+        out0(0) = gGyroscopeValues.alpha;
+        out0(1) = gGyroscopeValues.beta;
+        out0(2) = gGyroscopeValues.gamma;
+        out0(3) = gGyroscopeValues.isRunning;
+    }
+};
+
 
 PluginLoad(WasmUGens) {
     ft = inTable;
@@ -223,7 +269,29 @@ PluginLoad(WasmUGens) {
     DefineUnit("MouseX", sizeof(MouseInputUGen), (UnitCtorFunc)&MouseX_Ctor, 0, 0);
     DefineUnit("MouseY", sizeof(MouseInputUGen), (UnitCtorFunc)&MouseY_Ctor, 0, 0);
     DefineUnit("MouseButton", sizeof(MouseInputUGen), (UnitCtorFunc)&MouseButton_Ctor, 0, 0);
+
+    registerUnit<Gyroscope>(ft, "Gyroscope", false);
+    registerUnit<Accelerometer>(ft, "Accelerometer", false);
 }
 
 
 PluginUnload(WasmUGens) {}
+
+void pass_accelerometer(double x, double y, double z) {
+    gAccelerometerValues.x = x;
+    gAccelerometerValues.y = y;
+    gAccelerometerValues.z = z;
+    gAccelerometerValues.isRunning = true;
+}
+
+void pass_gyroscope(double alpha, double beta, double gamma) {
+    gGyroscopeValues.alpha = alpha;
+    gGyroscopeValues.beta = beta;
+    gGyroscopeValues.gamma = gamma;
+    gGyroscopeValues.isRunning = true;
+}
+
+EMSCRIPTEN_BINDINGS(wasm_ugens) {
+    emscripten::function("passAccelerometer", pass_accelerometer);
+    emscripten::function("passGyroscope", pass_gyroscope);
+}

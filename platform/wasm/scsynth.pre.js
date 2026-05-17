@@ -124,3 +124,32 @@ Module['getAudioContext'] = () => {
 Module['getWorkletNode'] = () => {
     return EmAudio[Module['_getScsynthWorkletNode']()]
 }
+
+/**
+ * Requests device motion (accelerometer) and device orientation (gyroscope).
+ * and pass their values to a C-FFI function (see WasmUGens)
+ */
+Module['activateSensors'] = () => {
+    // this needs to be run in JS main thread - so we have to use JS->FFI instead of using emscripten
+    // directly in the audio worklet.
+    DeviceMotionEvent.requestPermission()
+        .then( response => {
+            if ( response === "granted" ) {
+                window.addEventListener('devicemotion', (e) => {
+                    Module['passAccelerometer'](
+                        e.acceleration.x,
+                        e.acceleration.y,
+                        e.acceleration.z
+                    );
+                });
+
+                window.addEventListener('deviceorientation', (e) => {
+                    Module['passGyroscope'](
+                        e.alpha,
+                        e.beta,
+                        e.gamma
+                    );
+                });
+            }
+        });
+}

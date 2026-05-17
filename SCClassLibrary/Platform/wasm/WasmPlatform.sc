@@ -23,6 +23,10 @@ WasmPlatform : UnixPlatform {
 	killProcessByID { |pid, force = true, subprocesses = true|
 		"killProcessById is not implemented".warn;
 	}
+
+	*activateSensors {
+		^JS.runCode("scsynth.activateSensors()");
+	}
 }
 
 JS {
