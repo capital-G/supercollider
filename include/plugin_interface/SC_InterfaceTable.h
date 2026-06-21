@@ -165,6 +165,9 @@ struct InterfaceTable {
     SCBool (*fGetScopeBuffer)(World* inWorld, int32 index, int32 channels, int32 maxFrames, struct ScopeBufferHnd*);
     void (*fPushScopeBuffer)(World* inWorld, struct ScopeBufferHnd*, int frames);
     void (*fReleaseScopeBuffer)(World* inWorld, struct ScopeBufferHnd*);
+
+    SCErr (*fSpawnSynth)(World* inWorld, const char* defName, int32 nodeID, int addAction, int targetID,
+                         int sampleOffset);
 };
 
 typedef struct InterfaceTable InterfaceTable;
@@ -227,6 +230,8 @@ typedef struct InterfaceTable InterfaceTable;
 #define DefineDtorCantAliasUnit(name)                                                                                  \
     (*ft->fDefineUnit)(#name, sizeof(name), (UnitCtorFunc)&name##_Ctor, (UnitDtorFunc)&name##_Dtor,                    \
                        kUnitDef_CantAliasInputsToOutputs);
+
+#define SpawnSynth (*ft->fSpawnSynth)
 
 typedef enum { sc_server_scsynth = 0, sc_server_supernova = 1 } SC_ServerType;
 
