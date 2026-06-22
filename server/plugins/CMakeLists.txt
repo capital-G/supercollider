@@ -37,6 +37,7 @@ set(plugin_sources
 	GrainUGens.cpp
 	IOUGens.cpp
 	LFUGens.cpp
+	MetaUGen.cpp
 	MulAddUGens.cpp
 	NoiseUGens.cpp
 	OscUGens.cpp
