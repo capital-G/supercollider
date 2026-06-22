@@ -304,6 +304,28 @@ Array[slot] : ArrayedCollection {
 		this.storeItemsOn(stream);
 		stream << "]" ;
 	}
+
+	asSignalString {
+		var size = this[0].asInteger & 0xff;
+		var string = "";
+
+		var index = 0;
+		var byteOffset = 1;
+		// already one byte offset by length
+		var currentData = this[index].asInteger >> 8;
+		size.do({|i|
+			if(byteOffset%3 == 0, {
+				index = index + 1;
+				currentData = this[index].asInteger;
+			});
+			string = string ++ ((currentData & 0xff).asAscii);
+			byteOffset = byteOffset + 1;
+			currentData = currentData >> 8;
+		});
+
+		^string
+	}
+
 	prUnarchive { arg slotArray;
 		slotArray.pairsDo {|index, slots| this[index].setSlots(slots) };
 		this.do {|obj| obj.initFromArchive };

@@ -589,4 +589,26 @@ String[char] : RawArray {
 	parseJSONFile {
 		^this.parseYAMLFile
 	}
+
+	asSignal {
+		var signals = [];
+		// offset by 1 which is the length byte
+		var index = 1;
+		var data = this.size;
+		this.do({|char|
+			data = data + (char.ascii << (8 * (index%3)));
+
+			index = index + 1;
+			if(index%3 == 0, {
+				// flush number and start next number
+				signals = signals.add(data.asFloat);
+				data = 0;
+			});
+		});
+		if(index%3 != 0 , {
+			// flush open number
+			signals = signals.add(data.asFloat);
+		});
+		^signals
+	}
 }
