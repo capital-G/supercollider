@@ -56,6 +56,7 @@
 #endif
 
 #include "malloc_aligned.hpp"
+#include "SC_Str4.h"
 
 #include <boost/predef/hardware.h>
 
@@ -187,6 +188,10 @@ static SCBool getScopeBuffer(World* inWorld, int index, int channels, int maxFra
 static void pushScopeBuffer(World* inWorld, ScopeBufferHnd* hnd, int frames);
 static void releaseScopeBuffer(World* inWorld, ScopeBufferHnd* hnd);
 
+////////////////////////////////////////////////////////////////////////////////
+
+static int spawnSynth(World* inWorld, const char* defname, int nodeID, int addAction, int targetID, int sampleOffset);
+
 void InterfaceTable_Init() {
     InterfaceTable* ft = &gInterfaceTable;
 
@@ -250,6 +255,8 @@ void InterfaceTable_Init() {
     ft->fGetScopeBuffer = &getScopeBuffer;
     ft->fPushScopeBuffer = &pushScopeBuffer;
     ft->fReleaseScopeBuffer = &releaseScopeBuffer;
+
+    ft->fSpawnSynth = &spawnSynth;
 }
 
 void initialize_library(const char* mUGensPluginPath);
@@ -1039,6 +1046,47 @@ void releaseScopeBuffer(World* inWorld, ScopeBufferHnd* hnd) {
     scope_buffer_writer writer(reinterpret_cast<scope_buffer*>(hnd->internalData));
     server_shared_memory_creator* shm = inWorld->hw->mShmem;
     shm->release_scope_buffer_writer(writer);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+/// see meth_s_do_new in SC_MiscCmds.cpp
+SCErr spawnSynth(World* inWorld, const char* defname, int nodeID, int addAction, int targetID, int sampleOffset) {
+    SCErr err = kSCErr_None;
+
+    auto oldOffset = inWorld->mSampleOffset;
+
+    // graphdef hashmap uses some strange int* strings instead of raw char*
+    int32 nameBuf[64];
+    str4cpy(nameBuf, defname);
+    GraphDef* def = World_GetGraphDef(inWorld, nameBuf);
+
+    if (!def) {
+        scprintf("*** ERROR: SynthDef %s not found\n", defname);
+        return kSCErr_SynthDefNotFound;
+    }
+
+    Graph* graph = nullptr;
+    Group* group = World_GetGroup(inWorld, targetID);
+    if (!group) {
+        scprintf("*** ERROR: Group not found\n");
+        return kSCErr_GroupNotFound;
+    }
+
+    inWorld->mSampleOffset = sampleOffset;
+    sc_msg_iter msg(0, "");
+    err = Graph_New(inWorld, def, nodeID, &msg, &graph, false);
+    if (err) {
+        inWorld->mSampleOffset = oldOffset;
+        return err;
+    }
+    Group_AddTail(group, &graph->mNode);
+
+    Node_StateMsg(&graph->mNode, kNode_Go);
+
+    inWorld->mSampleOffset = oldOffset;
+
+    return kSCErr_None;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
