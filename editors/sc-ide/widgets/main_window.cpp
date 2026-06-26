@@ -1309,6 +1309,7 @@ void MainWindow::applySettings(Settings::Manager* settings) {
     applyCursorBlinkingSettings(settings);
 
     mPostDocklet->mPostWindow->applySettings(settings);
+    mServerStatus->applySettings(settings);
 #ifdef SC_USE_QTWEBENGINE
     mHelpBrowserDocklet->browser()->applySettings(settings);
 #endif // SC_USE_QTWEBENGINE

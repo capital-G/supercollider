@@ -25,6 +25,7 @@
 #include <QProcess>
 #include <QStatusBar>
 
+#include "audio_status_box.hpp"
 #include "util/status_box.hpp"
 
 namespace ScIDE {
@@ -241,7 +242,7 @@ private:
     // Status bar
     QStatusBar* mStatusBar;
     StatusBox* mLangStatus;
-    StatusBox* mServerStatus;
+    AudioStatusBox* mServerStatus;
     ClockStatusBox* mClockLabel;
 
     // Docks
