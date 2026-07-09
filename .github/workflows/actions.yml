@@ -64,6 +64,13 @@ jobs:
       sc-version: ${{ needs.version-getter.outputs.sc-version }}
     secrets: inherit
 
+  build-flatpak:
+    needs: [lint, version-getter]
+    uses: ./.github/workflows/build_flatpak.yml
+    with:
+      sc-version: ${{ needs.version-getter.outputs.sc-version }}
+    secrets: inherit
+
   build-macos:
     needs: [lint, version-getter]
     uses: ./.github/workflows/build_macos.yml
@@ -129,8 +136,24 @@ jobs:
             s3-artifact-extension: 'zip'
             s3-create-latest-link: true # create link to pointing to the "latest" build
 
+          - artifact-suffix: "x86_64.flatpak"
+            s3-os-name: flatpak-x86_64
+            s3-artifact-prefix: '-x86_64-flatpak'
+            s3-artifact-suffix: ''
+            s3-artifact-extension: 'flatpak'
+            artifact-extension: '.flatpak'
+            s3-create-latest-link: true # create link to pointing to the "latest" build; activate only one per branch per s3-os-name
+
+          - artifact-suffix: "arm64.flatpak"
+            s3-os-name: flatpak-arm64
+            s3-artifact-prefix: '-arm64-flatpak'
+            s3-artifact-suffix: ''
+            s3-artifact-extension: 'flatpak'
+            artifact-extension: '.flatpak'
+            s3-create-latest-link: true # create link to pointing to the "latest" build; activate only one per branch per s3-os-name
+
     if: github.repository_owner == 'supercollider' && github.event_name != 'pull_request' # run in the main repo, but not on pull requests
-    needs: [lint, version-getter, build-macos, build-windows]
+    needs: [lint, version-getter, build-macos, build-windows, build-flatpak]
     runs-on: ubuntu-latest
     name: 'deploy ${{ matrix.artifact-suffix }} to s3'
     env:
@@ -203,7 +226,7 @@ jobs:
   # release - list of files uploaded to GH release is specified in the *upload* step
   deploy_gh:
     if: startsWith(github.ref, 'refs/tags/') # run on tagged commits
-    needs: [lint, version-getter, build-macos, build-windows]
+    needs: [lint, version-getter, build-macos, build-windows, build-flatpak]
     runs-on: ubuntu-latest
     name: 'deploy release'
     env:
@@ -224,4 +247,6 @@ jobs:
             ${{ env.INSTALL_PATH }}/${{ env.ARTIFACT_FILE_PREFIX }}-macOS-x64-legacy.dmg/*
             ${{ env.INSTALL_PATH }}/${{ env.ARTIFACT_FILE_PREFIX }}-win64-installer/*
             ${{ env.INSTALL_PATH }}/${{ env.ARTIFACT_FILE_PREFIX }}-win64/*
+            ${{ env.INSTALL_PATH }}/${{ env.ARTIFACT_FILE_PREFIX }}-x86_64.flatpak/*
+            ${{ env.INSTALL_PATH }}/${{ env.ARTIFACT_FILE_PREFIX }}-arm64.flatpak/*
           draft: true
