@@ -34,9 +34,8 @@ SuperCollider real time audio synthesis system wasm binding
 
 // language does run in its own thread
 static pthread_t gSclangWasmThread;
-// SC_WasmClient::Instance is not thread safe, so we need to implement our own check.
-// Since this does not cross thread boundaries, this is not wrapped in a sync primitive.
-static bool gInterpreterStarted = false;
+// SC_WasmClient::Instance is not thread safe, so we need to implement our own check
+static std::atomic gInterpreterStarted = false;
 
 // forward declaration
 void wasmTick(void* arg);
@@ -204,7 +203,8 @@ static void* bootInterpreter(void* args) {
  */
 void executeCode(void* arg) {
     char* code = static_cast<char*>(arg);
-    if (auto client = static_cast<SC_WasmClient*>(SC_WasmClient::instance())) {
+    auto client = static_cast<SC_WasmClient*>(SC_WasmClient::instance());
+    if (gInterpreterStarted && client != nullptr) {
         client->runCode(code);
     }
     free(code);
@@ -216,7 +216,8 @@ void executeCode(void* arg) {
  */
 void executeCodeSilent(void* arg) {
     char* code = static_cast<char*>(arg);
-    if (auto client = static_cast<SC_WasmClient*>(SC_WasmClient::instance())) {
+    auto client = static_cast<SC_WasmClient*>(SC_WasmClient::instance());
+    if (gInterpreterStarted && client != nullptr) {
         client->runCodeSilent(code);
     }
     free(code);
@@ -242,7 +243,7 @@ static void runOscMessage(void* arg) {
 }
 
 void passOscMessageToSclangThread(std::string data) {
-    if (!SC_WasmClient::instance()) {
+    if (!gInterpreterStarted) {
         std::cout << "wasm client not initialized!" << std::endl;
         return;
     }
