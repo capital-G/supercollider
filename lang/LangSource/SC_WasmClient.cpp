@@ -232,16 +232,6 @@ void runCodeSilentOnSclangThread(const std::string& code) {
     emscripten_dispatch_to_thread_async(gSclangWasmThread, EM_FUNC_SIG_VI, executeCodeSilent, nullptr, codeCopy);
 }
 
-void runCode(std::string code) {
-    auto client = static_cast<SC_WasmClient*>(SC_WasmClient::instance());
-    if (!client) {
-        std::cout << "wasm client not initialized!" << std::endl;
-        return;
-    }
-    client->runCode(code);
-}
-
-
 void ProcessOSCPacket(std::unique_ptr<OSC_Packet> inPacket, int inPortNum, double time);
 
 /**
