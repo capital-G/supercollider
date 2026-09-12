@@ -88,10 +88,11 @@ static int prIdeSend(struct VMGlobals* g, int numArgsPushed) {
 
 /** @brief responds to _AppClock_SchedNotify primitive */
 static int primitiveTicker(VMGlobals* g, int numArgsPushed) {
-    if (auto client = static_cast<SC_WasmClient*>(SC_WasmClient::instance())) {
-        // defer execution to js runtime
-        client->scheduleTick(1.0);
-    }
+    auto client = static_cast<SC_WasmClient*>(SC_WasmClient::instance());
+    // can not be null b/c when we call a primitive we already have setup the client
+    assert(client != nullptr);
+    // defer execution to js runtime
+    client->scheduleTick(1.0);
     return errNone;
 }
 
@@ -158,9 +159,11 @@ void SC_WasmClient::ticker() {
 }
 
 void wasmTick(void*) {
-    if (auto client = static_cast<SC_WasmClient*>(SC_WasmClient::instance())) {
-        client->ticker();
-    }
+    auto client = static_cast<SC_WasmClient*>(SC_WasmClient::instance());
+    // this can never be null b/c we only get called from within a primitive
+    // or at client init
+    assert(client != nullptr);
+    client->ticker();
 }
 
 void SC_WasmClient::postText(const char* str, size_t len) { std::cout.write(str, len); }
