@@ -34,6 +34,9 @@ SuperCollider real time audio synthesis system wasm binding
 
 // language does run in its own thread
 static pthread_t gSclangWasmThread;
+// SC_WasmClient::Instance is not thread safe, so we need to implement our own check.
+// Since this does not cross thread boundaries, this is not wrapped in a sync primitive.
+static bool gInterpreterStarted = false;
 
 // forward declaration
 void wasmTick(void* arg);
@@ -316,10 +319,14 @@ int netAddrSend(PyrObject* netAddrObj, int msglen, char* bufptr, bool sendMsgLen
 // js export
 
 void cBootInterpreter() {
-    if (SC_WasmClient::instance() != nullptr) {
+    // SC_WasmClient::instance() it is not thread safe.
+    // We therefore use our own state variable here to guard booting.
+    // This will make it impossible to re-boot a broken interpreter though - simply reload^^
+    if (gInterpreterStarted) {
         std::cout << "sclang already running" << std::endl;
         return;
     }
+    gInterpreterStarted = true;
     pthread_create(&gSclangWasmThread, nullptr, bootInterpreter, nullptr);
 }
 
