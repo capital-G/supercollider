@@ -86,7 +86,7 @@ static int prIdeSend(struct VMGlobals* g, int numArgsPushed) {
 }
 
 /** @brief responds to _AppClock_SchedNotify primitive */
-static int primitiveTicker(VMGlobals* g, int numArgsPushed) {
+static int prAppClockSchedNotify(VMGlobals* g, int numArgsPushed) {
     auto client = static_cast<SC_WasmClient*>(SC_WasmClient::instance());
     // can not be null b/c when we call a primitive we already have setup the client
     assert(client != nullptr);
@@ -101,7 +101,7 @@ void SC_WasmClient::onLibraryStartup() {
     int base = nextPrimitiveIndex();
     definePrimitive(base, index++, "_Wasm_runCode", prRunJsCode, 2, 0);
     definePrimitive(base, index++, "_Wasm_ideSend", prIdeSend, 2, 0);
-    definePrimitive(base, index++, "_AppClock_SchedNotify", primitiveTicker, 1, 0);
+    definePrimitive(base, index++, "_AppClock_SchedNotify", prAppClockSchedNotify, 1, 0);
 }
 
 void SC_WasmClient::runCode(const std::string& code, const bool silent) {
