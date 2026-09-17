@@ -166,7 +166,7 @@ void SC_WasmClient::flush() { std::cout << std::endl; }
 static void* wasmThreadFunction(void* args) {
     auto client = SC_WasmClient("sclang");
     std::cout << "Welcome to sclang.wasm!" << std::endl;
-    auto options = SC_LanguageClient::Options();
+    SC_LanguageClient::Options options;
     client.initRuntime(options);
     compileLibrary(false);
 
