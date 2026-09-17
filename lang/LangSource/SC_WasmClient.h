@@ -41,7 +41,14 @@ public:
 
     void onLibraryStartup() override;
 
-    void runCode(const std::string& code);
+    /**
+     * Evaluates the code in the interpreter.
+     *
+     * @param code
+     * @param silent If true, the output will be printed to stdout.
+     *      Running code silent is necessary for e.g. providing reflections to an editor.
+     */
+    void runCode(const std::string& code, bool silent);
 
     /**
      * (Re-arms) the single AppClock tick timer, replacing the pending one.
@@ -49,13 +56,6 @@ public:
     void scheduleTick(double delayMs);
     // id of the pending timeout, 0 if none has been set yet
     int mTickTimeoutId = 0;
-
-    /**
-     * Evaluates the code w/o printing to stdout.
-     * This becomes necessary for e.g. providing reflections to the editor.
-     * @param code
-     */
-    void runCodeSilent(const std::string& code);
 
     /**
      * from SC_TerminalClient.
