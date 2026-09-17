@@ -168,9 +168,9 @@ static void* wasmThreadFunction(void* args) {
     std::cout << "Welcome to sclang.wasm!" << std::endl;
     SC_LanguageClient::Options options;
     client.initRuntime(options);
-    compileLibrary(false);
+    const auto compileSuccess = compileLibrary(false);
 
-    if (!gCompiledOK) {
+    if (!compileSuccess) {
         std::cout << "ERROR: Library has not been compiled successfully." << std::endl;
         return nullptr;
     }
