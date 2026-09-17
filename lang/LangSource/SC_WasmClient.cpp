@@ -40,7 +40,7 @@ enum class InterpreterStatus {
 };
 
 // language does run in its own thread
-static pthread_t gSclangWasmThread;
+static pthread_t gSclangWasmWorkerThread;
 
 // interpreter status are written from the sclang thread, but needs to be available from js side
 // so we need to use a mutex to avoid memory scramble ;)
@@ -98,7 +98,7 @@ static int prIdeSend(struct VMGlobals* g, int numArgsPushed) {
 /** @brief responds to _AppClock_SchedNotify primitive */
 static int prAppClockSchedNotify(VMGlobals* g, int numArgsPushed) {
     // defer execution to run in the gSclangWasmThread event loop
-    emscripten_dispatch_to_thread_async(gSclangWasmThread, EM_FUNC_SIG_VI, &wasmTick, nullptr,
+    emscripten_dispatch_to_thread_async(gSclangWasmWorkerThread, EM_FUNC_SIG_VI, &wasmTick, nullptr,
                                         // for some reason we need an excessive parameter here
                                         // using a plain `EM_FUNC_SIG_V` results in a compile error
                                         nullptr);
@@ -187,7 +187,7 @@ void SC_WasmClient::flush() { std::cout << std::endl; }
 
 /** @brief Called as entry point by the dedicated gSclangWasmThread, which will boot the interpreter.
  */
-static void* wasmThreadFunction(void* args) {
+static void* wasmWorkerThreadFunction(void* args) {
     auto client = SC_WasmClient("sclang");
     std::cout << "Welcome to sclang.wasm!" << std::endl;
     SC_LanguageClient::Options options;
@@ -204,6 +204,9 @@ static void* wasmThreadFunction(void* args) {
     }
     // this does not block
     client.runMain();
+    // this not just keeps the owned resources "alive", but also
+    // keeps the worker thread alive such that the JS runtime can
+    // process events from e.g. the AppClock.
     emscripten_exit_with_live_runtime();
 };
 
@@ -237,7 +240,8 @@ void executeCode(void* arg, const bool silent) {
 
 void runCodeOnSclangThread(const std::string& code, const bool silent = false) {
     char* codeCopy = strdup(code.c_str());
-    emscripten_dispatch_to_thread_async(gSclangWasmThread, EM_FUNC_SIG_VII, executeCode, nullptr, codeCopy, silent);
+    emscripten_dispatch_to_thread_async(gSclangWasmWorkerThread, EM_FUNC_SIG_VII, executeCode, nullptr, codeCopy,
+                                        silent);
 }
 
 // acts as overload - emscripten does not support default arguments, so we provide an indirection here
@@ -273,7 +277,7 @@ void passOscMessageToSclangThread(std::string data) {
     packet->mReplyAddr.mReplyData = nullptr;
     packet->mReplyAddr.mSocket = 12345;
 
-    emscripten_dispatch_to_thread_async(gSclangWasmThread, EM_FUNC_SIG_VI, runOscMessage, nullptr, packet);
+    emscripten_dispatch_to_thread_async(gSclangWasmWorkerThread, EM_FUNC_SIG_VI, runOscMessage, nullptr, packet);
 }
 
 // patches
@@ -335,7 +339,7 @@ void cBootInterpreter() {
         }
         gInterpreterStatus = InterpreterStatus::Booting;
     }
-    pthread_create(&gSclangWasmThread, nullptr, wasmThreadFunction, nullptr);
+    pthread_create(&gSclangWasmWorkerThread, nullptr, wasmWorkerThreadFunction, nullptr);
 }
 
 EMSCRIPTEN_BINDINGS(sclangWasm) {
