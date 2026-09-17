@@ -97,11 +97,11 @@ static int prIdeSend(struct VMGlobals* g, int numArgsPushed) {
 
 /** @brief responds to _AppClock_SchedNotify primitive */
 static int prAppClockSchedNotify(VMGlobals* g, int numArgsPushed) {
-    auto client = static_cast<SC_WasmClient*>(SC_WasmClient::instance());
-    // can not be null b/c when we call a primitive we already have setup the client
-    assert(client != nullptr);
-    // defer execution to js runtime
-    client->scheduleTick(1.0);
+    // defer execution to run in the gSclangWasmThread event loop
+    emscripten_dispatch_to_thread_async(gSclangWasmThread, EM_FUNC_SIG_VI, &wasmTick, nullptr,
+                                        // for some reason we need an excessive parameter here
+                                        // using a plain `EM_FUNC_SIG_V` results in a compile error
+                                        nullptr);
     return errNone;
 }
 
@@ -120,13 +120,24 @@ void SC_WasmClient::runCode(const std::string& code, const bool silent) {
 }
 
 void SC_WasmClient::scheduleTick(double delayMs) {
-    emscripten_clear_timeout(mTickTimeoutId);
+    // std::chrono::high_resolution_clock is nano seconds in emscripten
+    const double deadline = elapsedTime() + delayMs * 0.001;
+    // there is already a timeout which will invoke us earlier - so bail out
+    if (mTickTimeoutId != 0 && mTickDeadline <= deadline) {
+        return;
+    }
+    if (mTickTimeoutId != 0) {
+        // we can clear the existing timer since we will create a new one
+        // which will wake us up sooner than the existing one
+        emscripten_clear_timeout(mTickTimeoutId);
+    }
     mTickTimeoutId = emscripten_set_timeout(wasmTick, delayMs, nullptr);
+    mTickDeadline = deadline;
 }
 
 
 void SC_WasmClient::ticker() {
-    // the pending timeout that called us has timet out
+    // the pending timeout that called us has timed out
     mTickTimeoutId = 0;
     double secs;
     lock();
@@ -136,7 +147,7 @@ void SC_WasmClient::ticker() {
     if (haveNext) {
         double now = elapsedTime();
         double delayMs = (secs - now) * 1000.0;
-        // lower bound clip to avoid suffocation of JS thread(?)
+        // lower bound clip to give others room to breath
         if (delayMs < 1.0) {
             delayMs = 1.0;
         }
@@ -148,6 +159,9 @@ void SC_WasmClient::ticker() {
     }
 }
 
+/**
+ * This C function will be invoked by a JS timeout which runs on the gSclangWasmThread.
+ */
 void wasmTick(void*) {
     auto client = static_cast<SC_WasmClient*>(SC_WasmClient::instance());
     // this can never be null b/c we only get called from within a primitive
