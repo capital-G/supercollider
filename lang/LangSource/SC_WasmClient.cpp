@@ -165,6 +165,10 @@ void SC_WasmClient::postError(const char* str, size_t len) {
 
 void SC_WasmClient::flush() { std::cout << std::endl; }
 
+/** @brief Called from emscripten.
+ *
+ * @details Runs in dedicated gSclangWasmThread
+ */
 static void* bootInterpreter(void* args) {
     auto client = SC_WasmClient("sclang");
     std::cout << "Welcome to sclang.wasm!" << std::endl;
