@@ -161,11 +161,9 @@ void SC_WasmClient::postError(const char* str, size_t len) {
 
 void SC_WasmClient::flush() { std::cout << std::endl; }
 
-/** @brief Called from emscripten.
- *
- * @details Runs in dedicated gSclangWasmThread
+/** @brief Called as entry point by the dedicated gSclangWasmThread, which will boot the interpreter.
  */
-static void* bootInterpreter(void* args) {
+static void* wasmThreadFunction(void* args) {
     auto client = SC_WasmClient("sclang");
     std::cout << "Welcome to sclang.wasm!" << std::endl;
     auto options = SC_LanguageClient::Options();
@@ -293,7 +291,7 @@ void cBootInterpreter() {
         return;
     }
     gInterpreterStarted = true;
-    pthread_create(&gSclangWasmThread, nullptr, bootInterpreter, nullptr);
+    pthread_create(&gSclangWasmThread, nullptr, wasmThreadFunction, nullptr);
 }
 
 EMSCRIPTEN_BINDINGS(sclangWasm) {
