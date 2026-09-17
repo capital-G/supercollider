@@ -57,8 +57,6 @@ public:
      */
     void runCodeSilent(const std::string& code);
 
-    int run(int argc, char** argv) override;
-
     /**
      * from SC_TerminalClient.
      * instead of using boost asio, we are using JS callbacks

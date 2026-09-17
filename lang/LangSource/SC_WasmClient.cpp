@@ -119,21 +119,6 @@ void SC_WasmClient::runCodeSilent(const std::string& code) {
     runLibrary(s_interpretCmdLine);
 }
 
-int SC_WasmClient::run(int argc, char** argv) {
-    auto options = Options();
-    initRuntime(options);
-
-    compileLibrary(false);
-
-    if (!gCompiledOK) {
-        post("ERROR: Library has not been compiled successfully.\n");
-        return 1;
-    }
-    runMain();
-
-    return 0;
-}
-
 void SC_WasmClient::ticker() {
     // the pending timeout that called us has timet out
     mTickTimeoutId = 0;
