@@ -32,10 +32,20 @@ SuperCollider real time audio synthesis system wasm binding
 #include "VMGlobals.h"
 #include "SC_Msg.h"
 
+enum class InterpreterStatus {
+    Idle,
+    Booting,
+    CompilationFailed,
+    Running,
+};
+
 // language does run in its own thread
 static pthread_t gSclangWasmThread;
-// SC_WasmClient::Instance is not thread safe, so we need to implement our own check
-static std::atomic gInterpreterStarted = false;
+
+// interpreter status are written from the sclang thread, but needs to be available from js side
+// so we need to use a mutex to avoid memory scramble ;)
+static std::mutex gInterpreterStatusMutex;
+static InterpreterStatus gInterpreterStatus = InterpreterStatus::Idle;
 
 // forward declaration
 void wasmTick(void* arg);
@@ -169,11 +179,16 @@ static void* wasmThreadFunction(void* args) {
     SC_LanguageClient::Options options;
     client.initRuntime(options);
     const auto compileSuccess = compileLibrary(false);
-
-    if (!compileSuccess) {
-        std::cout << "ERROR: Library has not been compiled successfully." << std::endl;
-        return nullptr;
+    {
+        std::lock_guard lock(gInterpreterStatusMutex);
+        if (!compileSuccess) {
+            gInterpreterStatus = InterpreterStatus::CompilationFailed;
+            std::cout << "ERROR: Library has not been compiled successfully." << std::endl;
+            return nullptr;
+        }
+        gInterpreterStatus = InterpreterStatus::Running;
     }
+    // this does not block
     client.runMain();
     emscripten_exit_with_live_runtime();
 };
@@ -186,8 +201,20 @@ static void* wasmThreadFunction(void* args) {
  */
 void executeCode(void* arg, const bool silent) {
     char* code = static_cast<char*>(arg);
-    auto client = static_cast<SC_WasmClient*>(SC_WasmClient::instance());
-    if (gInterpreterStarted && client != nullptr) {
+
+    // use a cache variable to hold the mutex as short as possible
+    // as run code could lead to extended locking and maybe a deadlock
+    bool interpreterRunning;
+    {
+        std::lock_guard lock(gInterpreterStatusMutex);
+        interpreterRunning = gInterpreterStatus == InterpreterStatus::Running;
+    }
+
+    if (interpreterRunning) {
+        auto client = static_cast<SC_WasmClient*>(SC_WasmClient::instance());
+        // client can not be null here b/c we only set interpreter running
+        // when the client was created
+        assert(client != nullptr);
         client->runCode(code, silent);
     }
     free(code);
@@ -213,9 +240,12 @@ static void runOscMessage(void* arg) {
 }
 
 void passOscMessageToSclangThread(std::string data) {
-    if (!gInterpreterStarted) {
-        std::cout << "wasm client not initialized!" << std::endl;
-        return;
+    {
+        std::lock_guard lock(gInterpreterStatusMutex);
+        if (gInterpreterStatus != InterpreterStatus::Running) {
+            std::cout << "sclang client not running!" << std::endl;
+            return;
+        }
     }
     // data contains raw OSC bytes (embind copies Uint8Array into std::string)
     // build the packet on this thread, copy the bytes, dispatch to sclang thread
@@ -283,14 +313,14 @@ int netAddrSend(PyrObject* netAddrObj, int msglen, char* bufptr, bool sendMsgLen
 // js export
 
 void cBootInterpreter() {
-    // SC_WasmClient::instance() it is not thread safe.
-    // We therefore use our own state variable here to guard booting.
-    // This will make it impossible to re-boot a broken interpreter though - simply reload^^
-    if (gInterpreterStarted) {
-        std::cout << "sclang already running" << std::endl;
-        return;
+    {
+        std::lock_guard lock(gInterpreterStatusMutex);
+        if (gInterpreterStatus != InterpreterStatus::Idle) {
+            std::cout << "sclang already booted" << std::endl;
+            return;
+        }
+        gInterpreterStatus = InterpreterStatus::Booting;
     }
-    gInterpreterStarted = true;
     pthread_create(&gSclangWasmThread, nullptr, wasmThreadFunction, nullptr);
 }
 
