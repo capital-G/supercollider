@@ -104,9 +104,9 @@ void SC_WasmClient::onLibraryStartup() {
     definePrimitive(base, index++, "_AppClock_SchedNotify", primitiveTicker, 1, 0);
 }
 
-void SC_WasmClient::runCode(const std::string& code) {
+void SC_WasmClient::runCode(const std::string& code, const bool silent) {
     setCmdLine(code.c_str());
-    runLibrary(s_interpretPrintCmdLine);
+    runLibrary(silent ? s_interpretCmdLine : s_interpretPrintCmdLine);
 }
 
 void SC_WasmClient::scheduleTick(double delayMs) {
@@ -114,10 +114,6 @@ void SC_WasmClient::scheduleTick(double delayMs) {
     mTickTimeoutId = emscripten_set_timeout(wasmTick, delayMs, nullptr);
 }
 
-void SC_WasmClient::runCodeSilent(const std::string& code) {
-    setCmdLine(code.c_str());
-    runLibrary(s_interpretCmdLine);
-}
 
 void SC_WasmClient::ticker() {
     // the pending timeout that called us has timet out
@@ -190,37 +186,24 @@ static void* bootInterpreter(void* args) {
  *
  * @param arg the char* gets freed after execution
  */
-void executeCode(void* arg) {
+void executeCode(void* arg, const bool silent) {
     char* code = static_cast<char*>(arg);
     auto client = static_cast<SC_WasmClient*>(SC_WasmClient::instance());
     if (gInterpreterStarted && client != nullptr) {
-        client->runCode(code);
+        client->runCode(code, silent);
     }
     free(code);
 }
 
-/**
- * @brief Evalutes the code silently within the sclang interpreter.
- * @see executeCode()
- */
-void executeCodeSilent(void* arg) {
-    char* code = static_cast<char*>(arg);
-    auto client = static_cast<SC_WasmClient*>(SC_WasmClient::instance());
-    if (gInterpreterStarted && client != nullptr) {
-        client->runCodeSilent(code);
-    }
-    free(code);
+
+void runCodeOnSclangThread(const std::string& code, const bool silent = false) {
+    char* codeCopy = strdup(code.c_str());
+    emscripten_dispatch_to_thread_async(gSclangWasmThread, EM_FUNC_SIG_VII, executeCode, nullptr, codeCopy, silent);
 }
 
-void runCodeOnSclangThread(const std::string& code) {
-    char* codeCopy = strdup(code.c_str());
-    emscripten_dispatch_to_thread_async(gSclangWasmThread, EM_FUNC_SIG_VI, executeCode, nullptr, codeCopy);
-}
+// acts as overload - emscripten does not support default arguments, so we provide an indirection here
+void runCodeSclangThreadLoud(const std::string& code) { runCodeOnSclangThread(code, false); }
 
-void runCodeSilentOnSclangThread(const std::string& code) {
-    char* codeCopy = strdup(code.c_str());
-    emscripten_dispatch_to_thread_async(gSclangWasmThread, EM_FUNC_SIG_VI, executeCodeSilent, nullptr, codeCopy);
-}
 
 void ProcessOSCPacket(std::unique_ptr<OSC_Packet> inPacket, int inPortNum, double time);
 
@@ -315,8 +298,11 @@ void cBootInterpreter() {
 
 EMSCRIPTEN_BINDINGS(sclangWasm) {
     emscripten::function("bootInterpreter", &cBootInterpreter);
+    // emscripten does not respect c++ default arguments
+    // .runCode(code, silent)
     emscripten::function("runCode", &runCodeOnSclangThread);
-    emscripten::function("runCodeSilent", &runCodeSilentOnSclangThread);
+    // .runCode(code) => .runCode(code, silent=false) in C++
+    emscripten::function("runCode", &runCodeSclangThreadLoud);
     emscripten::function("sendOsc", &passOscMessageToSclangThread);
 }
 
