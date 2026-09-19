@@ -188,7 +188,7 @@ void SC_WasmClient::flush() { std::cout << std::endl; }
 /** @brief Called as entry point by the dedicated gSclangWasmThread, which will boot the interpreter.
  */
 static void* wasmWorkerThreadFunction(void* args) {
-    auto client = SC_WasmClient("sclang");
+    SC_WasmClient client("sclang");
     std::cout << "Welcome to sclang.wasm!" << std::endl;
     SC_LanguageClient::Options options;
     client.initRuntime(options);
