@@ -330,7 +330,7 @@ int netAddrSend(PyrObject* netAddrObj, int msglen, char* bufptr, bool sendMsgLen
 
 // js export
 
-void cBootInterpreter() {
+void bootInterpreter() {
     {
         std::lock_guard lock(gInterpreterStatusMutex);
         if (gInterpreterStatus != InterpreterStatus::Idle) {
@@ -343,7 +343,7 @@ void cBootInterpreter() {
 }
 
 EMSCRIPTEN_BINDINGS(sclangWasm) {
-    emscripten::function("bootInterpreter", &cBootInterpreter);
+    emscripten::function("bootInterpreter", &bootInterpreter);
     // emscripten does not respect c++ default arguments
     // .runCode(code, silent)
     emscripten::function("runCode", &runCodeOnSclangThread);
