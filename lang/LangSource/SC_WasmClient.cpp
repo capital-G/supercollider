@@ -257,7 +257,7 @@ static void runOscMessage(void* arg) {
     ProcessOSCPacket(std::unique_ptr<OSC_Packet>(packet), 57120, elapsedTime());
 }
 
-void passOscMessageToSclangThread(std::string data) {
+void passOscMessageToSclangThread(const std::string& data) {
     {
         std::lock_guard lock(gInterpreterStatusMutex);
         if (gInterpreterStatus != InterpreterStatus::Running) {
