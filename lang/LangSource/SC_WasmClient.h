@@ -53,19 +53,19 @@ public:
     /**
      * (Re-arms) the single AppClock tick timer, replacing the pending one.
      *
-     * This function ONLY(!) runs in the gSclangWasmThread, so we do not need to guard
+     * This function ONLY(!) runs in the main thread, so we do not need to guard
      * mTickTimeoutId or mTickDeadline.
      */
     void scheduleTick(double delayMs);
-    /** id of the pending timeout, 0 if none has been set yet. only accessed via gSclangWasmThread */
+    /** id of the pending timeout, 0 if none has been set yet. only accessed via the main thread */
     int mTickTimeoutId = 0;
-    /** currently active deadline - only accessed via gSclangWasmThread */
+    /** currently active deadline - only accessed via the main thread */
     double mTickDeadline = 0.0;
 
     /**
      * from SC_TerminalClient.
-     * Instead of using boost asio, we are using JS timeouts spawned in the gSclangWasmThread.
-     * This therefore only runs in the gSclangWasmThread.
+     * Instead of using boost asio, we are using JS timeouts spawned in the main thread.
+     * This therefore only runs in the main thread.
      */
     void ticker();
 };

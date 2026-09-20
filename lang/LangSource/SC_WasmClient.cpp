@@ -95,13 +95,26 @@ static int prIdeSend(struct VMGlobals* g, int numArgsPushed) {
     return errNone;
 }
 
-/** @brief responds to _AppClock_SchedNotify primitive */
+/** @brief responds to _AppClock_SchedNotify primitive which schedules
+ *  a timer on the main thread, which mimics the desktop client.
+ */
 static int prAppClockSchedNotify(VMGlobals* g, int numArgsPushed) {
-    // defer execution to run in the gSclangWasmThread event loop
-    emscripten_dispatch_to_thread_async(gSclangWasmWorkerThread, EM_FUNC_SIG_VI, &wasmTick, nullptr,
-                                        // for some reason we need an excessive parameter here
-                                        // using a plain `EM_FUNC_SIG_V` results in a compile error
-                                        nullptr);
+    if (emscripten_is_main_runtime_thread()) {
+        // if we are running in the main thread already (e.g. `{ {}.defer }.defer` )
+        // we do not need to go through the main thread dispatch but can instead directly
+        // invoke a rescheduling of our timeout.
+        // This is also necessary b/c wasmTick resets the current timer as it acts like it was called
+        // by the timeout, but we do not want to remove the reference of the current timer that invoked us.
+        auto client = static_cast<SC_WasmClient*>(SC_WasmClient::instance());
+        // client can't be null in primitive
+        assert(client != nullptr);
+        client->scheduleTick(1.0);
+    } else {
+        emscripten_dispatch_to_thread_async(emscripten_main_runtime_thread_id(), EM_FUNC_SIG_VI, &wasmTick, nullptr,
+                                            // for some reason we need an excessive parameter here
+                                            // using a plain `EM_FUNC_SIG_V` results in a compile error
+                                            nullptr);
+    }
     return errNone;
 }
 
@@ -139,8 +152,13 @@ void SC_WasmClient::scheduleTick(double delayMs) {
 void SC_WasmClient::ticker() {
     // the pending timeout that called us has timed out
     mTickTimeoutId = 0;
+
+    if (!trylock()) {
+        // currently locked - instead of blocking the main thread, we will defer to the next round
+        scheduleTick(1.0);
+        return;
+    }
     double secs;
-    lock();
     const bool haveNext = tickLocked(&secs);
     unlock();
 
@@ -160,7 +178,7 @@ void SC_WasmClient::ticker() {
 }
 
 /**
- * This C function will be invoked by a JS timeout which runs on the gSclangWasmThread.
+ * This C function will be invoked by a JS timeout which runs on the main thread.
  */
 void wasmTick(void*) {
     auto client = static_cast<SC_WasmClient*>(SC_WasmClient::instance());
@@ -206,7 +224,7 @@ static void* wasmWorkerThreadFunction(void* args) {
     client.runMain();
     // this not just keeps the owned resources "alive", but also
     // keeps the worker thread alive such that the JS runtime can
-    // process events from e.g. the AppClock.
+    // process events like passing incoming OSC messages or runCode.
     emscripten_exit_with_live_runtime();
 };
 
