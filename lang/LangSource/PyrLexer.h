@@ -47,8 +47,6 @@ struct FatalInterpreterError : public std::runtime_error {
 };
 
 SCLANG_DLLEXPORT_C bool compileLibrary(bool standalone);
-// All exceptions are caught, except FatalInterpreterErrors
-SCLANG_DLLEXPORT_C void runLibrary(PyrSymbol* selector);
 
 void startLexerCmdLine(char* textbuf, int textbuflen);
 

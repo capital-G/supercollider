@@ -59,6 +59,7 @@ SCLANG_DLLEXPORT_C void schedStop();
 SCLANG_DLLEXPORT_C void schedClear();
 
 SCLANG_DLLEXPORT_C bool compileLibrary(bool standalone);
+// All exceptions are caught, except FatalInterpreterErrors
 SCLANG_DLLEXPORT_C void runLibrary(struct PyrSymbol* selector);
 SCLANG_DLLEXPORT_C void runInterpreter(struct VMGlobals* g, struct PyrSymbol* selector, int numArgsPushed);
 
