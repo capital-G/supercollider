@@ -155,6 +155,8 @@ void SC_WasmClient::ticker() {
 
     if (!trylock()) {
         // currently locked - instead of blocking the main thread, we will defer to the next round
+        // "Thou shalt not block the browser main thread in wasm" ->
+        // https://emscripten.org/docs/porting/pthreads.html#blocking-on-the-main-browser-thread
         scheduleTick(1.0);
         return;
     }
